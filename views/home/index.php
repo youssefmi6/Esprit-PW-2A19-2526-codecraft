@@ -122,8 +122,6 @@
                     <li><a href="index.php?action=home" class="active">Accueil</a></li>
                     <li><a href="#resources">Ressources</a></li>
                     <li><a href="#contributors">Top Contributeurs</a></li>
-                    <li><a href="index.php?action=resource&subaction=upload">Publier</a></li>
-                    <li><a href="index.php?action=profile">Mon Profil</a></li>
                 </ul>
             </div>
             <div class="col-6 col-lg-3 text-end">
@@ -305,31 +303,59 @@
 
 <script>
 function searchResources() {
-    var term = document.getElementById('searchInput').value.toLowerCase();
-    var cards = document.querySelectorAll('#resourcesGrid .col-lg-4');
-    for(var i = 0; i < cards.length; i++) {
-        var title = cards[i].querySelector('.resource-title a');
-        if(title) {
-            var titleText = title.innerText.toLowerCase();
-            cards[i].style.display = titleText.indexOf(term) !== -1 ? '' : 'none';
-        }
-    }
+    runDynamicSearch();
 }
 
 function filterByMatiere(matiere) {
-    var cards = document.querySelectorAll('#resourcesGrid .col-lg-4');
-    for(var i = 0; i < cards.length; i++) {
-        var cardMatiere = cards[i].getAttribute('data-matiere');
-        cards[i].style.display = cardMatiere === matiere ? '' : 'none';
-    }
+    runDynamicSearch(matiere);
 }
 
 var searchInput = document.getElementById('searchInput');
+var searchTimer = null;
+var currentMatiereFilter = '';
+
+async function runDynamicSearch(matiere) {
+    if (typeof matiere !== 'undefined') {
+        currentMatiereFilter = matiere || '';
+    }
+
+    var resourcesGrid = document.getElementById('resourcesGrid');
+    if (!resourcesGrid) return;
+
+    var term = searchInput ? searchInput.value.trim() : '';
+    var params = new URLSearchParams({
+        action: 'home',
+        ajax: '1',
+        search: term,
+        matiere: currentMatiereFilter
+    });
+
+    try {
+        var response = await fetch('index.php?' + params.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!response.ok) return;
+        var data = await response.json();
+        if (typeof data.html === 'string') {
+            resourcesGrid.innerHTML = data.html;
+        }
+    } catch (e) {
+        console.error('Dynamic home search failed:', e);
+    }
+}
+
 if(searchInput) {
     searchInput.addEventListener('keypress', function(e) {
         if(e.key === 'Enter') {
+            e.preventDefault();
             searchResources();
         }
+    });
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() {
+            runDynamicSearch();
+        }, 250);
     });
 }
 </script>
