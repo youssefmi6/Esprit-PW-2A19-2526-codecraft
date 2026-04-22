@@ -57,15 +57,15 @@
     <div class="main-content">
         <div class="top-bar"><div class="page-title"><h1>Gestion des ressources</h1><p>Gérez toutes les ressources pédagogiques</p></div><button class="btn-blue" data-bs-toggle="modal" data-bs-target="#addResourceModal"><i class="bi bi-plus-circle-fill me-2"></i>Ajouter</button></div>
         <div class="content-card">
-            <form method="GET" action="index.php?action=admin&subaction=resources"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="resources"><div class="row g-2 mb-3"><div class="col-md-4"><div class="search-box"><i class="bi bi-search"></i><input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></div></div>
-            <div class="col-md-3"><select name="type" class="form-select" onchange="this.form.submit()"><option value="">Tous les types</option><?php foreach($types as $t): ?><option value="<?= escape($t['type']) ?>" <?= $type_filter == $t['type'] ? 'selected' : '' ?>><?= escape($t['type']) ?></option><?php endforeach; ?></select></div>
-            <div class="col-md-3"><select name="matiere" class="form-select" onchange="this.form.submit()"><option value="">Toutes les matières</option><?php foreach($matieres as $m): ?><option value="<?= escape($m['matiere']) ?>" <?= $matiere_filter == $m['matiere'] ? 'selected' : '' ?>><?= escape($m['matiere']) ?></option><?php endforeach; ?></select></div>
+            <form method="GET" action="index.php?action=admin&subaction=resources"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="resources"><div class="row g-2 mb-3"><div class="col-md-4"><div class="search-box"><i class="bi bi-search"></i><input type="text" id="resourcesSearchInput" name="search" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></div></div>
+            <div class="col-md-3"><select id="resourcesTypeFilter" name="type" class="form-select" onchange="this.form.submit()"><option value="">Tous les types</option><?php foreach($types as $t): ?><option value="<?= escape($t['type']) ?>" <?= $type_filter == $t['type'] ? 'selected' : '' ?>><?= escape($t['type']) ?></option><?php endforeach; ?></select></div>
+            <div class="col-md-3"><select id="resourcesMatiereFilter" name="matiere" class="form-select" onchange="this.form.submit()"><option value="">Toutes les matières</option><?php foreach($matieres as $m): ?><option value="<?= escape($m['matiere']) ?>" <?= $matiere_filter == $m['matiere'] ? 'selected' : '' ?>><?= escape($m['matiere']) ?></option><?php endforeach; ?></select></div>
             <div class="col-md-2"><a href="index.php?action=admin&subaction=resources" class="btn btn-secondary w-100">Réinitialiser</a></div></div></form>
             
             <?php if(isset($success)): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
             <?php if(isset($error)): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
             
-            <div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Titre</th><th>Type</th><th>Matière</th><th>Niveau</th><th>Auteur</th><th>Pages</th><th>Downloads</th><th>Note</th><th>Actions</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Titre</th><th>Type</th><th>Matière</th><th>Niveau</th><th>Auteur</th><th>Pages</th><th>Downloads</th><th>Note</th><th>Actions</th></tr></thead><tbody id="resourcesTableBody">
                 <?php foreach($resources as $r): ?>
                 <tr><td><?= $r['id_res'] ?></td><td><?= escape(substr($r['titre'], 0, 40)) ?></td><td><span class="badge bg-info"><?= $r['type'] ?></span></td><td><span class="badge-matiere"><?= escape($r['matiere'] ?: 'Autre') ?></span></td><td><?= $r['niveau'] ?: '-' ?></td><td><?= escape($r['prenom'] . ' ' . $r['nom']) ?></td><td><?= $r['pages'] ?: '-' ?></td><td><i class="bi bi-download"></i> <?= $r['downloads'] ?></td><td><?php if($r['note_moyenne'] > 0): ?><i class="bi bi-star-fill text-warning"></i> <?= $r['note_moyenne'] ?><?php else: ?>-<?php endif; ?></td>
                 <td><a href="index.php?action=admin&subaction=view_resource&id=<?= $r['id_res'] ?>" class="btn-edit"><i class="bi bi-eye-fill"></i></a><a href="index.php?action=admin&subaction=edit_resource&id=<?= $r['id_res'] ?>" class="btn-edit"><i class="bi bi-pencil-fill"></i></a><a href="index.php?action=admin&subaction=delete_resource&id=<?= $r['id_res'] ?>" class="btn-delete" onclick="return confirm('Supprimer ?')"><i class="bi bi-trash3-fill"></i></a></td>
@@ -85,6 +85,53 @@
     </div></div></div>
 
     <script>document.getElementById('accessSelect')?.addEventListener('change', function() { document.getElementById('priceRow').style.display = this.value === 'payant' ? 'flex' : 'none'; });</script>
+    <script>
+        (function () {
+            const searchInput = document.getElementById('resourcesSearchInput');
+            const typeFilter = document.getElementById('resourcesTypeFilter');
+            const matiereFilter = document.getElementById('resourcesMatiereFilter');
+            const tableBody = document.getElementById('resourcesTableBody');
+            if (!searchInput || !typeFilter || !matiereFilter || !tableBody) return;
+
+            let timer = null;
+            const runSearch = async () => {
+                const params = new URLSearchParams({
+                    action: 'admin',
+                    subaction: 'resources',
+                    ajax: '1',
+                    search: searchInput.value.trim(),
+                    type: typeFilter.value,
+                    matiere: matiereFilter.value
+                });
+
+                try {
+                    const response = await fetch(`index.php?${params.toString()}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    if (typeof data.rows === 'string') {
+                        tableBody.innerHTML = data.rows;
+                    }
+                } catch (e) {
+                    console.error('Recherche dynamique resources error:', e);
+                }
+            };
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(runSearch, 250);
+            });
+            typeFilter.addEventListener('change', function (e) {
+                e.preventDefault();
+                runSearch();
+            });
+            matiereFilter.addEventListener('change', function (e) {
+                e.preventDefault();
+                runSearch();
+            });
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

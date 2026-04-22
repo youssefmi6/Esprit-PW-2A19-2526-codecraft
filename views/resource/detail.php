@@ -17,6 +17,16 @@
         .author-link:hover { color:var(--primary); text-decoration:underline; }
         .rating-star { cursor:pointer; font-size:28px; color:#cbd5e1; display:inline-block; margin-right:5px; }
         .rating-star:hover, .rating-star.active { color:#fbbf24; }
+        .comment-actions { margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; }
+        .comment-actions button { border:none; background:none; padding:0; font-size:13px; }
+        .comment-actions .btn-edit-comment { color:#2563eb; }
+        .comment-actions .btn-delete-comment { color:#dc2626; }
+        .comment-reactions { margin-top:8px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+        .reaction-form { display:inline-flex; }
+        .reaction-btn { border:none; background:none; color:#64748b; font-size:14px; padding:0; }
+        .reaction-btn.active-like { color:#16a34a; font-weight:600; }
+        .reaction-btn.active-dislike { color:#dc2626; font-weight:600; }
+        .comment-edit-form { margin-top:10px; display:none; }
     </style>
 </head>
 <body>
@@ -75,7 +85,55 @@
             
             <div class="resource-detail-card"><h5>💬 Commentaires (<?= count($comments) ?>)</h5>
                 <?php foreach ($comments as $comment): ?>
-                <div class="comment-card"><div class="d-flex gap-3"><img src="<?= $comment['photo'] ?: 'https://randomuser.me/api/portraits/men/32.jpg' ?>" style="width:45px;height:45px;border-radius:50%;"><div><strong><?= escape($comment['nom']) ?> <?= escape($comment['prenom']) ?></strong><p><?= escape($comment['message']) ?></p><small><?= date('d/m/Y H:i', strtotime($comment['date'])) ?></small></div></div></div>
+                <div class="comment-card">
+                    <div class="d-flex gap-3">
+                        <img src="<?= $comment['photo'] ?: 'https://randomuser.me/api/portraits/men/32.jpg' ?>" style="width:45px;height:45px;border-radius:50%;">
+                        <div class="w-100">
+                            <strong><?= escape($comment['nom']) ?> <?= escape($comment['prenom']) ?></strong>
+                            <p><?= escape($comment['message']) ?></p>
+                            <small><?= date('d/m/Y H:i', strtotime($comment['date'])) ?></small>
+                            <div class="comment-reactions">
+                                <?php if ($currentUser): ?>
+                                    <form method="POST" action="index.php?action=resource&subaction=react_comment" class="reaction-form">
+                                        <input type="hidden" name="id_res" value="<?= (int)$resource['id_res'] ?>">
+                                        <input type="hidden" name="id_comment" value="<?= (int)$comment['id_comment'] ?>">
+                                        <input type="hidden" name="reaction" value="1">
+                                        <button type="submit" class="reaction-btn <?= ((int)$comment['user_reaction'] === 1) ? 'active-like' : '' ?>">
+                                            <i class="fa fa-thumbs-up"></i> Like (<?= (int)$comment['likes_count'] ?>)
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="index.php?action=resource&subaction=react_comment" class="reaction-form">
+                                        <input type="hidden" name="id_res" value="<?= (int)$resource['id_res'] ?>">
+                                        <input type="hidden" name="id_comment" value="<?= (int)$comment['id_comment'] ?>">
+                                        <input type="hidden" name="reaction" value="-1">
+                                        <button type="submit" class="reaction-btn <?= ((int)$comment['user_reaction'] === -1) ? 'active-dislike' : '' ?>">
+                                            <i class="fa fa-thumbs-down"></i> Dislike (<?= (int)$comment['dislikes_count'] ?>)
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <small><a href="index.php?action=login">Connectez-vous</a> pour liker/disliker</small>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($currentUser && (int)$currentUser['id'] === (int)$comment['id']): ?>
+                                <div class="comment-actions">
+                                    <button type="button" class="btn-edit-comment" onclick="toggleCommentEdit(<?= (int)$comment['id_comment'] ?>)">Modifier</button>
+                                    <form method="POST" action="index.php?action=resource&subaction=delete_comment" onsubmit="return confirm('Supprimer ce commentaire ?');">
+                                        <input type="hidden" name="id_res" value="<?= (int)$resource['id_res'] ?>">
+                                        <input type="hidden" name="id_comment" value="<?= (int)$comment['id_comment'] ?>">
+                                        <button type="submit" class="btn-delete-comment">Supprimer</button>
+                                    </form>
+                                </div>
+                                <form method="POST" action="index.php?action=resource&subaction=update_comment" id="edit-form-<?= (int)$comment['id_comment'] ?>" class="comment-edit-form">
+                                    <input type="hidden" name="id_res" value="<?= (int)$resource['id_res'] ?>">
+                                    <input type="hidden" name="id_comment" value="<?= (int)$comment['id_comment'] ?>">
+                                    <textarea name="message" class="form-control mb-2" rows="2" required><?= escape($comment['message']) ?></textarea>
+                                    <button type="submit" class="btn-primary-custom" style="padding:6px 16px;">Enregistrer</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
                 <?php endforeach; ?>
                 <?php if ($currentUser): ?>
                 <form method="POST" action="index.php?action=resource&subaction=add_comment" class="mt-4"><textarea name="message" class="form-control mb-2" rows="3" placeholder="Votre commentaire..." required></textarea><input type="hidden" name="id_res" value="<?= $resource['id_res'] ?>"><button type="submit" class="btn-primary-custom">Publier</button></form>
@@ -95,6 +153,12 @@ let selectedRating = 0;
 const stars = document.querySelectorAll('#ratingStars .rating-star');
 const submitBtn = document.getElementById('submitRating');
 if (stars.length) stars.forEach(star => { star.addEventListener('click', function() { selectedRating = this.getAttribute('data-rating'); document.getElementById('selectedRating').value = selectedRating; stars.forEach(s => s.classList.remove('active')); for(let i=0;i<selectedRating;i++) stars[i].classList.add('active'); submitBtn.disabled = false; }); });
+
+function toggleCommentEdit(commentId) {
+    var form = document.getElementById('edit-form-' + commentId);
+    if (!form) return;
+    form.style.display = form.style.display === 'block' ? 'none' : 'block';
+}
 </script>
 
 <footer class="footer"><div class="container"><div class="row"><div class="col-lg-4"><h4 class="mb-3"><img src="uploads/logo.png" alt="StudyHub" class="site-logo site-logo--footer"></h4><p>Plateforme de partage de ressources académiques entre étudiants.</p></div></div></div></footer>

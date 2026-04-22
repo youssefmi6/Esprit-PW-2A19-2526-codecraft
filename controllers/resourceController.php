@@ -16,7 +16,7 @@ function resourceDetail($id) {
     }
     
     $currentUser = getCurrentUser($pdo);
-    $comments = getCommentsByResource($pdo, $id);
+    $comments = getCommentsByResource($pdo, $id, $currentUser ? (int)$currentUser['id'] : null);
     $hasRated = $currentUser ? hasUserRated($pdo, $id, $currentUser['id']) : false;
     $totalVotes = getTotalVotes($pdo, $id);
     
@@ -288,6 +288,71 @@ function resourceAddComment() {
         addComment($pdo, $id_res, $user['id'], $message);
     }
     
+    header("Location: index.php?action=resource&subaction=detail&id=$id_res");
+    exit();
+}
+
+function resourceUpdateComment() {
+    global $pdo;
+
+    if (!isLoggedIn()) {
+        header('Location: index.php?action=login');
+        exit();
+    }
+
+    $user = getCurrentUser($pdo);
+    $id_res = intval($_POST['id_res'] ?? 0);
+    $commentId = intval($_POST['id_comment'] ?? 0);
+    $message = trim($_POST['message'] ?? '');
+
+    if ($id_res > 0 && $commentId > 0 && $message !== '') {
+        require_once __DIR__ . '/../models/commentModel.php';
+        updateCommentByOwner($pdo, $commentId, (int)$user['id'], $message);
+    }
+
+    header("Location: index.php?action=resource&subaction=detail&id=$id_res");
+    exit();
+}
+
+function resourceDeleteComment() {
+    global $pdo;
+
+    if (!isLoggedIn()) {
+        header('Location: index.php?action=login');
+        exit();
+    }
+
+    $user = getCurrentUser($pdo);
+    $id_res = intval($_POST['id_res'] ?? 0);
+    $commentId = intval($_POST['id_comment'] ?? 0);
+
+    if ($id_res > 0 && $commentId > 0) {
+        require_once __DIR__ . '/../models/commentModel.php';
+        deleteCommentByOwner($pdo, $commentId, (int)$user['id']);
+    }
+
+    header("Location: index.php?action=resource&subaction=detail&id=$id_res");
+    exit();
+}
+
+function resourceReactComment() {
+    global $pdo;
+
+    if (!isLoggedIn()) {
+        header('Location: index.php?action=login');
+        exit();
+    }
+
+    $user = getCurrentUser($pdo);
+    $id_res = intval($_POST['id_res'] ?? 0);
+    $commentId = intval($_POST['id_comment'] ?? 0);
+    $reaction = intval($_POST['reaction'] ?? 0);
+
+    if ($id_res > 0 && $commentId > 0 && in_array($reaction, [1, -1], true)) {
+        require_once __DIR__ . '/../models/commentModel.php';
+        reactToComment($pdo, $commentId, $id_res, (int)$user['id'], $reaction);
+    }
+
     header("Location: index.php?action=resource&subaction=detail&id=$id_res");
     exit();
 }

@@ -42,6 +42,15 @@ function adminUsers() {
     
     require_once __DIR__ . '/../models/userModel.php';
     $users = getAllUsers($pdo, $search);
+
+    if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'rows' => renderAdminUsersRows($users),
+            'count' => count($users),
+        ]);
+        exit();
+    }
     
     require_once __DIR__ . '/../views/admin/users.php';
 }
@@ -62,6 +71,15 @@ function adminResources() {
     $resources = getAllResources($pdo, $search, $type_filter, $matiere_filter);
     $types = getAllTypes($pdo);
     $matieres = getAllMatieres($pdo);
+
+    if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'rows' => renderAdminResourcesRows($resources),
+            'count' => count($resources),
+        ]);
+        exit();
+    }
     
     require_once __DIR__ . '/../views/admin/resources.php';
 }
@@ -360,5 +378,66 @@ function adminDownloadResource($id) {
     
     header('Location: index.php?action=admin&subaction=resources');
     exit();
+}
+
+function renderAdminUsersRows($users) {
+    if (empty($users)) {
+        return '<tr><td colspan="7" class="text-center text-muted py-4">Aucun utilisateur trouvé.</td></tr>';
+    }
+
+    $html = '';
+    foreach ($users as $user) {
+        $fullName = trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? ''));
+        $roleLabel = ((int)($user['role'] ?? 1) === 0) ? 'Admin' : 'User';
+        $html .= '<tr>'
+            . '<td>' . (int)$user['id'] . '</td>'
+            . '<td><i class="bi bi-person-circle me-2" style="color:#1a8cff"></i>' . escape($fullName) . '</td>'
+            . '<td>' . escape($user['email'] ?? '') . '</td>'
+            . '<td>' . escape(($user['universite'] ?? '') ?: '-') . '</td>'
+            . '<td>' . escape(($user['filiere'] ?? '') ?: '-') . '</td>'
+            . '<td><span class="badge bg-secondary">' . $roleLabel . '</span></td>'
+            . '<td>'
+            . '<a href="index.php?action=admin&subaction=view_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a>'
+            . '<a href="index.php?action=admin&subaction=edit_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a>'
+            . '<a href="index.php?action=admin&subaction=delete_user&id=' . (int)$user['id'] . '" class="btn-delete" title="Supprimer" onclick="return confirm(\'Supprimer ?\')"><i class="bi bi-trash3-fill"></i></a>'
+            . '</td>'
+            . '</tr>';
+    }
+
+    return $html;
+}
+
+function renderAdminResourcesRows($resources) {
+    if (empty($resources)) {
+        return '<tr><td colspan="10" class="text-center text-muted py-4">Aucune ressource trouvée.</td></tr>';
+    }
+
+    $html = '';
+    foreach ($resources as $r) {
+        $title = substr($r['titre'] ?? '', 0, 40);
+        $rating = (float)($r['note_moyenne'] ?? 0);
+        $ratingCell = $rating > 0
+            ? '<i class="bi bi-star-fill text-warning"></i> ' . escape((string)$rating)
+            : '-';
+
+        $html .= '<tr>'
+            . '<td>' . (int)$r['id_res'] . '</td>'
+            . '<td>' . escape($title) . '</td>'
+            . '<td><span class="badge bg-info">' . escape($r['type'] ?? '') . '</span></td>'
+            . '<td><span class="badge-matiere">' . escape(($r['matiere'] ?? '') ?: 'Autre') . '</span></td>'
+            . '<td>' . escape(($r['niveau'] ?? '') ?: '-') . '</td>'
+            . '<td>' . escape(trim(($r['prenom'] ?? '') . ' ' . ($r['nom'] ?? ''))) . '</td>'
+            . '<td>' . escape((string)(($r['pages'] ?? '') ?: '-')) . '</td>'
+            . '<td><i class="bi bi-download"></i> ' . (int)($r['downloads'] ?? 0) . '</td>'
+            . '<td>' . $ratingCell . '</td>'
+            . '<td>'
+            . '<a href="index.php?action=admin&subaction=view_resource&id=' . (int)$r['id_res'] . '" class="btn-edit"><i class="bi bi-eye-fill"></i></a>'
+            . '<a href="index.php?action=admin&subaction=edit_resource&id=' . (int)$r['id_res'] . '" class="btn-edit"><i class="bi bi-pencil-fill"></i></a>'
+            . '<a href="index.php?action=admin&subaction=delete_resource&id=' . (int)$r['id_res'] . '" class="btn-delete" onclick="return confirm(\'Supprimer ?\')"><i class="bi bi-trash3-fill"></i></a>'
+            . '</td>'
+            . '</tr>';
+    }
+
+    return $html;
 }
 ?>

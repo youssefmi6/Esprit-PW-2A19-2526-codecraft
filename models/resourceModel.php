@@ -1,6 +1,44 @@
 <?php
 // models/resourceModel.php - Modèle pour la gestion des ressources
 
+class ResourceModel
+{
+    public static function getAllResources(PDO $pdo, string $search = '', string $type = '', string $matiere = ''): array
+    {
+        return getAllResources($pdo, $search, $type, $matiere);
+    }
+
+    public static function getResourceById(PDO $pdo, int $id)
+    {
+        return getResourceById($pdo, $id);
+    }
+
+    public static function getUserResources(PDO $pdo, int $userId): array
+    {
+        return getUserResources($pdo, $userId);
+    }
+
+    public static function createResource(PDO $pdo, array $data)
+    {
+        return createResource($pdo, $data);
+    }
+
+    public static function updateResource(PDO $pdo, int $id, array $data): bool
+    {
+        return updateResource($pdo, $id, $data);
+    }
+
+    public static function deleteResource(PDO $pdo, int $id, ?int $userId = null): bool
+    {
+        return deleteResource($pdo, $id, $userId);
+    }
+
+    public static function incrementDownloads(PDO $pdo, int $id): bool
+    {
+        return incrementDownloads($pdo, $id);
+    }
+}
+
 // ========== FONCTIONS DE BASE ==========
 
 /**

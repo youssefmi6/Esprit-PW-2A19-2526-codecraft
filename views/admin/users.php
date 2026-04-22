@@ -56,10 +56,10 @@
     <div class="main-content">
         <div class="top-bar"><div class="page-title"><h1>Gestion des utilisateurs</h1><p>Gérez tous les utilisateurs de la plateforme</p></div><button class="btn-blue" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="bi bi-person-plus-fill me-2"></i>Ajouter</button></div>
         <div class="content-card">
-            <div class="search-box"><i class="bi bi-search"></i><form method="GET" action="index.php?action=admin&subaction=users"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="users"><input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></form></div>
+            <div class="search-box"><i class="bi bi-search"></i><form method="GET" action="index.php?action=admin&subaction=users"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="users"><input type="text" name="search" id="usersSearchInput" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></form></div>
             <?php if(isset($success)): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
             <?php if(isset($error)): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
-            <div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Nom complet</th><th>Email</th><th>Université</th><th>Filière</th><th>Rôle</th><th>Actions</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Nom complet</th><th>Email</th><th>Université</th><th>Filière</th><th>Rôle</th><th>Actions</th></tr></thead><tbody id="usersTableBody">
                 <?php foreach($users as $user): ?>
                 <tr><td><?= $user['id'] ?></td><td><i class="bi bi-person-circle me-2" style="color:#1a8cff"></i><?= escape($user['prenom'] . ' ' . $user['nom']) ?></td><td><?= escape($user['email']) ?></td><td><?= escape($user['universite'] ?: '-') ?></td><td><?= escape($user['filiere'] ?: '-') ?></td><td><span class="badge bg-secondary"><?= $user['role'] == 0 ? 'Admin' : 'User' ?></span></td>
                 <td><a href="index.php?action=admin&subaction=view_user&id=<?= $user['id'] ?>" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a><a href="index.php?action=admin&subaction=edit_user&id=<?= $user['id'] ?>" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a><a href="index.php?action=admin&subaction=delete_user&id=<?= $user['id'] ?>" class="btn-delete" title="Supprimer" onclick="return confirm('Supprimer ?')"><i class="bi bi-trash3-fill"></i></a></td>
@@ -72,6 +72,32 @@
         <form method="POST" action="index.php?action=admin&subaction=users"><input type="hidden" name="action" value="add"><div class="modal-body"><input type="text" name="nom" class="form-control mb-3" placeholder="Nom" required><input type="text" name="prenom" class="form-control mb-3" placeholder="Prénom" required><input type="email" name="email" class="form-control mb-3" placeholder="Email" required><input type="password" name="mdp" class="form-control mb-3" placeholder="Mot de passe" required><select name="role" class="form-select"><option value="1">Utilisateur</option><option value="0">Administrateur</option></select></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn-blue">Ajouter</button></div></form>
     </div></div></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const input = document.getElementById('usersSearchInput');
+            const body = document.getElementById('usersTableBody');
+            if (!input || !body) return;
+
+            let timer = null;
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const search = encodeURIComponent(input.value.trim());
+                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}`;
+                    try {
+                        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        if (typeof data.rows === 'string') {
+                            body.innerHTML = data.rows;
+                        }
+                    } catch (e) {
+                        console.error('Recherche dynamique users error:', e);
+                    }
+                }, 250);
+            });
+        })();
+    </script>
     <script src="../js/validation.js"></script>
     <script src="../js/admin-users.js"></script>
 </body>

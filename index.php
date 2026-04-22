@@ -71,6 +71,12 @@ switch($action) {
             resourceAddRating();
         } elseif ($subaction === 'add_comment') {
             resourceAddComment();
+        } elseif ($subaction === 'update_comment') {
+            resourceUpdateComment();
+        } elseif ($subaction === 'delete_comment') {
+            resourceDeleteComment();
+        } elseif ($subaction === 'react_comment') {
+            resourceReactComment();
         } else {
             resourceDetail($id);
         }
