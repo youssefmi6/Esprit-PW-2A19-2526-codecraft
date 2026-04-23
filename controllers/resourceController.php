@@ -2,6 +2,31 @@
 // controllers/resourceController.php
 require_once __DIR__ . '/../includes/matiere_photos.php';
 
+function getTrustedGeneratedPhotoUrl(): ?string {
+    $url = trim($_POST['generated_photo_url'] ?? '');
+    if ($url === '') {
+        return null;
+    }
+
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return null;
+    }
+
+    $parts = parse_url($url);
+    $scheme = strtolower($parts['scheme'] ?? '');
+    $host = strtolower($parts['host'] ?? '');
+    if ($scheme !== 'https') {
+        return null;
+    }
+
+    $allowedHosts = ['images.unsplash.com', 'source.unsplash.com', 'image.pollinations.ai'];
+    if (!in_array($host, $allowedHosts, true)) {
+        return null;
+    }
+
+    return $url;
+}
+
 function resourceDetail($id) {
     global $pdo;
     
@@ -68,6 +93,10 @@ function resourceUploadPost() {
     $pages = intval($_POST['pages'] ?? 0);
     
     $photo = $matiere_icons[$matiere] ?? $matiere_icons['Autre'];
+    $generatedPhotoUrl = getTrustedGeneratedPhotoUrl();
+    if (!empty($generatedPhotoUrl)) {
+        $photo = $generatedPhotoUrl;
+    }
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
@@ -150,6 +179,10 @@ function resourceEditPost($id) {
     $pages = intval($_POST['pages'] ?? 0);
     
     $photo = $resource['photo'];
+    $generatedPhotoUrl = getTrustedGeneratedPhotoUrl();
+    if (!empty($generatedPhotoUrl)) {
+        $photo = $generatedPhotoUrl;
+    }
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
         $ext = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
