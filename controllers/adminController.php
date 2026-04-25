@@ -4,6 +4,45 @@ function adminLoginGet() {
     require_once __DIR__ . '/../views/admin/login.php';
 }
 
+function adminLoginPost() {
+    global $pdo;
+    require_once __DIR__ . '/../models/userModel.php';
+
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    $user = getUserByEmail($pdo, $email);
+    if (!$user || !($password == $user['mdp'] || password_verify($password, $user['mdp']))) {
+        $error = "Email ou mot de passe incorrect";
+        require_once __DIR__ . '/../views/admin/login.php';
+        return;
+    }
+
+    if ((int)($user['role'] ?? 1) !== 0) {
+        $error = "Acces refuse. Ce compte n'est pas administrateur.";
+        require_once __DIR__ . '/../views/admin/login.php';
+        return;
+    }
+
+    if (isset($user['is_active']) && (int)$user['is_active'] !== 1) {
+        $error = "Compte administrateur inactif. Activez-le depuis le lien d'activation.";
+        require_once __DIR__ . '/../views/admin/login.php';
+        return;
+    }
+
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['user_name'] = $user['nom'];
+    $_SESSION['user_prenom'] = $user['prenom'];
+    $_SESSION['user_email'] = $user['email'];
+    $_SESSION['user_role'] = $user['role'];
+    $_SESSION['admin_id'] = $user['id'];
+    $_SESSION['admin_nom'] = $user['nom'];
+    $_SESSION['admin_prenom'] = $user['prenom'];
+
+    header('Location: index.php?action=admin&subaction=dashboard');
+    exit();
+}
+
 function adminDashboard() {
     if (!isAdmin()) {
         adminLoginGet();
@@ -241,6 +280,40 @@ function adminDeleteUser($id) {
     exit();
 }
 
+function adminToggleUserStatus($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+    require_once __DIR__ . '/../models/userModel.php';
+
+    $currentAdmin = getCurrentUser($pdo);
+    $user = getUserById($pdo, $id);
+    if (!$user || (int)$id === (int)$currentAdmin['id']) {
+        header('Location: index.php?action=admin&subaction=users');
+        exit();
+    }
+
+    $newStatus = ((int)($user['is_active'] ?? 1) === 1) ? 0 : 1;
+    setUserActiveStatus($pdo, $id, $newStatus);
+
+    if ($newStatus === 0) {
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        setActivationToken($pdo, $id, $token, $expiresAt);
+        sendActivationEmail($user['email'], trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? '')), $token);
+        $_SESSION['admin_users_message'] = "Utilisateur desactive. Lien d'activation envoye par email.";
+    } else {
+        setActivationToken($pdo, $id, '', null);
+        $_SESSION['admin_users_message'] = "Utilisateur active avec succes.";
+    }
+
+    header('Location: index.php?action=admin&subaction=users');
+    exit();
+}
+
 function adminViewResource($id) {
     if (!isAdmin()) {
         adminLoginGet();
@@ -382,13 +455,22 @@ function adminDownloadResource($id) {
 
 function renderAdminUsersRows($users) {
     if (empty($users)) {
-        return '<tr><td colspan="7" class="text-center text-muted py-4">Aucun utilisateur trouvé.</td></tr>';
+        return '<tr><td colspan="8" class="text-center text-muted py-4">Aucun utilisateur trouve.</td></tr>';
     }
 
     $html = '';
     foreach ($users as $user) {
         $fullName = trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? ''));
         $roleLabel = ((int)($user['role'] ?? 1) === 0) ? 'Admin' : 'User';
+        $isActive = (int)($user['is_active'] ?? 1) === 1;
+        $statusBadge = $isActive ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-danger">Inactif</span>';
+        $isCurrentAdmin = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === (int)$user['id'];
+        $statusTitle = $isCurrentAdmin ? 'Statut de votre compte' : ($isActive ? 'Desactiver et envoyer lien email' : 'Activer');
+        $statusIcon = $isActive ? 'bi-toggle-off' : 'bi-toggle-on';
+        $statusClass = $isActive ? 'btn-delete' : 'btn-edit';
+        $statusAction = $isCurrentAdmin
+            ? '<span class="' . $statusClass . '" title="' . $statusTitle . '"><i class="bi ' . $statusIcon . '"></i></span>'
+            : '<a href="index.php?action=admin&subaction=toggle_user_status&id=' . (int)$user['id'] . '" class="' . $statusClass . '" title="' . $statusTitle . '" onclick="return confirm(\'Changer le statut de ce compte ?\')"><i class="bi ' . $statusIcon . '"></i></a>';
         $html .= '<tr>'
             . '<td>' . (int)$user['id'] . '</td>'
             . '<td><i class="bi bi-person-circle me-2" style="color:#1a8cff"></i>' . escape($fullName) . '</td>'
@@ -396,9 +478,11 @@ function renderAdminUsersRows($users) {
             . '<td>' . escape(($user['universite'] ?? '') ?: '-') . '</td>'
             . '<td>' . escape(($user['filiere'] ?? '') ?: '-') . '</td>'
             . '<td><span class="badge bg-secondary">' . $roleLabel . '</span></td>'
+            . '<td>' . $statusBadge . '</td>'
             . '<td>'
             . '<a href="index.php?action=admin&subaction=view_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a>'
             . '<a href="index.php?action=admin&subaction=edit_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a>'
+            . $statusAction
             . '<a href="index.php?action=admin&subaction=delete_user&id=' . (int)$user['id'] . '" class="btn-delete" title="Supprimer" onclick="return confirm(\'Supprimer ?\')"><i class="bi bi-trash3-fill"></i></a>'
             . '</td>'
             . '</tr>';

@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
     <link rel="stylesheet" href="css/style.css">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('studyhub-theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
     <style>
         .resource-photo { width:100%; max-height:280px; object-fit:cover; object-position:center; border-radius:16px; margin-bottom:20px; box-shadow:0 8px 24px rgba(15,23,42,0.08); }
         .author-link { color:#1e293b; text-decoration:none; }
@@ -35,7 +43,7 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-6 col-lg-3"><a href="index.php?action=home" class="logo"><img src="uploads/logo.png" alt="StudyHub" class="site-logo"></a></div>
-            <div class="col-lg-6 d-none d-lg-block">
+            <div class="col-lg-5 d-none d-lg-block">
                 <ul class="nav-links">
                     <li><a href="index.php?action=home">Accueil</a></li>
                     <li><a href="index.php?action=home#resources">Ressources</a></li>
@@ -43,13 +51,18 @@
                     <li><a href="index.php?action=profile">Mon Profil</a></li>
                 </ul>
             </div>
-            <div class="col-6 col-lg-3 text-end">
+            <div class="col-6 col-lg-4">
+                <div class="nav-right-controls">
+                <button type="button" class="theme-toggle" id="themeToggle" title="Changer le mode">
+                    <i class="fa-solid fa-sun" id="themeIcon"></i>
+                </button>
                 <?php if ($currentUser): ?>
-                    <span><i class="ti-user me-1"></i> <?= escape($currentUser['nom']) ?> <a href="index.php?action=logout" class="ms-2 text-danger"><i class="ti-power-off"></i></a></span>
+                    <span class="user-chip"><img src="<?= escape(!empty($currentUser['photo']) ? $currentUser['photo'] : 'https://randomuser.me/api/portraits/men/32.jpg') ?>" class="user-avatar-small"><span class="user-chip-name"><?= escape($currentUser['nom']) ?></span> <a href="index.php?action=logout" class="text-danger"><i class="ti-power-off"></i></a></span>
                 <?php else: ?>
                     <a href="index.php?action=login" class="btn-outline-custom me-2" style="padding:6px 20px;">Connexion</a>
                     <a href="index.php?action=register" class="btn-primary-custom" style="padding:6px 20px;">Inscription</a>
                 <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>

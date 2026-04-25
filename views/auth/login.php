@@ -38,12 +38,23 @@
     <div class="login-container">
         <div class="login-brand"><img src="uploads/logo.png" alt="StudyHub" class="login-brand-img"></div>
         <p class="subtitle">Connectez-vous à votre compte</p>
+        <?php if(isset($_SESSION['password_reset_success'])): ?>
+        <div class="alert alert-success show"><i class="bi bi-check-circle-fill me-2"></i><?= $_SESSION['password_reset_success'] ?></div>
+        <?php unset($_SESSION['password_reset_success']); endif; ?>
         <?php if(isset($error)): ?>
         <div class="alert alert-danger show" id="errorAlert"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?></div>
         <?php endif; ?>
         <form method="POST" id="loginForm">
             <div class="form-group"><label class="form-label">Email</label><div class="input-group-custom"><i class="bi bi-envelope-fill"></i><input type="email" name="email" id="email" class="form-control-custom" placeholder="exemple@email.com" required></div></div>
             <div class="form-group"><label class="form-label">Mot de passe</label><div class="input-group-custom"><i class="bi bi-lock-fill"></i><input type="password" name="password" id="password" class="form-control-custom" placeholder="••••••••" required></div></div>
+            <div style="text-align:right; margin-top:-10px; margin-bottom:18px;">
+                <a href="index.php?action=forgot_password" style="font-size:14px; color:#1a8cff; text-decoration:none; font-weight:600;">Mot de passe oublié ?</a>
+            </div>
+            <?php if (!empty($showActivationLink)): ?>
+                <div style="text-align:right; margin-top:-12px; margin-bottom:18px;">
+                    <a href="index.php?action=resend_activation" style="font-size:14px; color:#1a8cff; text-decoration:none; font-weight:600;">Activer mon compte</a>
+                </div>
+            <?php endif; ?>
             <button type="submit" class="btn-login"><i class="bi bi-box-arrow-in-right me-2"></i>Se connecter</button>
         </form>
         <div class="register-link"><p>Pas encore de compte ? <a href="index.php?action=register">Inscrivez-vous</a></p></div>

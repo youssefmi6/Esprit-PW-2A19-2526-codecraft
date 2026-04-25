@@ -12,8 +12,20 @@ function authLoginPost() {
     
     require_once __DIR__ . '/../models/userModel.php';
     $user = getUserByEmail($pdo, $email);
+    $showActivationLink = false;
     
     if ($user && ($password == $user['mdp'] || password_verify($password, $user['mdp']))) {
+        if (isset($user['is_active']) && (int)$user['is_active'] !== 1) {
+            $token = bin2hex(random_bytes(32));
+            $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
+            setActivationToken($pdo, (int)$user['id'], $token, $expiresAt);
+            sendActivationEmail($user['email'], trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? '')), $token);
+            $error = "Compte inactif. Un lien d'activation vient d'etre envoye a votre email.";
+            $showActivationLink = true;
+            require_once __DIR__ . '/../views/auth/login.php';
+            return;
+        }
+
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['nom'];
         $_SESSION['user_prenom'] = $user['prenom'];
@@ -33,6 +45,118 @@ function authLoginPost() {
         $error = "Email ou mot de passe incorrect";
         require_once __DIR__ . '/../views/auth/login.php';
     }
+}
+
+function authActivateAccount() {
+    global $pdo;
+    $token = $_GET['token'] ?? '';
+
+    require_once __DIR__ . '/../models/userModel.php';
+    $success = false;
+    if (!empty($token)) {
+        $success = activateUserByToken($pdo, $token);
+    }
+    $_SESSION['password_reset_success'] = $success
+        ? "Votre compte est maintenant actif. Vous pouvez vous connecter."
+        : "Lien invalide ou expire. Demandez un nouveau lien depuis la connexion.";
+    header('Location: index.php?action=login');
+    exit();
+}
+
+function authResendActivationGet() {
+    require_once __DIR__ . '/../views/auth/resend_activation.php';
+}
+
+function authResendActivationPost() {
+    global $pdo;
+    require_once __DIR__ . '/../models/userModel.php';
+
+    $email = trim($_POST['email'] ?? '');
+    $message = '';
+    $error = '';
+    $canActivate = false;
+    $emailForActivation = '';
+
+    if (isset($_POST['confirm_activate'])) {
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Veuillez entrer un email valide.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        $user = getUserByEmail($pdo, $email);
+        if (!$user) {
+            $message = "Si cet email existe, un lien d'activation a ete envoye.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        if (isset($user['is_active']) && (int)$user['is_active'] === 1) {
+            $message = "Votre compte est deja actif. Vous pouvez vous connecter.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        // Activation immediate requested from login flow.
+        setUserActiveStatus($pdo, (int)$user['id'], 1);
+        setActivationToken($pdo, (int)$user['id'], '', null);
+        $_SESSION['password_reset_success'] = "Compte active avec succes. Vous pouvez vous connecter.";
+        header('Location: index.php?action=login');
+        exit();
+    }
+
+    if (isset($_POST['send_activation_link'])) {
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Veuillez entrer un email valide.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        $user = getUserByEmail($pdo, $email);
+        if (!$user) {
+            $message = "Si cet email existe, un lien d'activation a ete envoye.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        if (isset($user['is_active']) && (int)$user['is_active'] === 1) {
+            $message = "Votre compte est deja actif. Vous pouvez vous connecter.";
+            require_once __DIR__ . '/../views/auth/resend_activation.php';
+            return;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        setActivationToken($pdo, (int)$user['id'], $token, $expiresAt);
+        sendActivationEmail($user['email'], trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? '')), $token);
+        $message = "Lien d'activation envoye. Verifiez votre boite email.";
+        require_once __DIR__ . '/../views/auth/resend_activation.php';
+        return;
+    }
+
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Veuillez entrer un email valide.";
+        require_once __DIR__ . '/../views/auth/resend_activation.php';
+        return;
+    }
+
+    $user = getUserByEmail($pdo, $email);
+    if (!$user) {
+        $message = "Aucun compte trouve avec cet email.";
+        require_once __DIR__ . '/../views/auth/resend_activation.php';
+        return;
+    }
+
+    if (isset($user['is_active']) && (int)$user['is_active'] === 1) {
+        $message = "Votre compte est deja actif. Vous pouvez vous connecter.";
+        require_once __DIR__ . '/../views/auth/resend_activation.php';
+        return;
+    }
+
+    $canActivate = true;
+    $emailForActivation = $email;
+    $message = "Email correct. Cliquez sur Activer pour recevoir le lien d'activation.";
+    require_once __DIR__ . '/../views/auth/resend_activation.php';
 }
 
 function authRegisterGet() {
@@ -146,5 +270,65 @@ function authLogout() {
     session_destroy();
     header('Location: index.php?action=home');
     exit();
+}
+
+function authForgotPasswordGet() {
+    $step = 1;
+    require_once __DIR__ . '/../views/auth/forgot_password.php';
+}
+
+function authForgotPasswordPost() {
+    global $pdo;
+    require_once __DIR__ . '/../models/userModel.php';
+
+    $step = 1;
+    $message = '';
+    $error = '';
+
+    if (isset($_POST['send_notification'])) {
+        $tel = $_POST['tel'] ?? '';
+        $normalizedTel = normalizePhoneForStorage($tel);
+
+        if ($normalizedTel === false) {
+            $error = "Numéro invalide (8 chiffres ou +216XXXXXXXX).";
+        } else {
+            $user = getUserByPhone($pdo, $normalizedTel);
+            if (!$user) {
+                $error = "Aucun compte trouvé avec ce numéro.";
+            } else {
+                $_SESSION['password_reset_user_id'] = $user['id'];
+                $_SESSION['password_reset_phone'] = $normalizedTel;
+                $step = 2;
+                $message = "Notification envoyée sur votre téléphone. Vous pouvez maintenant définir un nouveau mot de passe.";
+            }
+        }
+    } elseif (isset($_POST['reset_password'])) {
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $step = 2;
+
+        if (!isset($_SESSION['password_reset_user_id'])) {
+            $step = 1;
+            $error = "Session expirée. Recommencez la procédure.";
+        } elseif (strlen($newPassword) < 6) {
+            $error = "Le mot de passe doit contenir au moins 6 caractères.";
+        } elseif ($newPassword !== $confirmPassword) {
+            $error = "Les mots de passe ne correspondent pas.";
+        } else {
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $updated = updateUserPasswordById($pdo, $_SESSION['password_reset_user_id'], $hashedPassword);
+
+            unset($_SESSION['password_reset_user_id'], $_SESSION['password_reset_phone']);
+
+            if ($updated) {
+                $_SESSION['password_reset_success'] = "Mot de passe réinitialisé avec succès. Connectez-vous.";
+                header('Location: index.php?action=login');
+                exit();
+            }
+            $error = "Impossible de mettre à jour le mot de passe. Réessayez.";
+        }
+    }
+
+    require_once __DIR__ . '/../views/auth/forgot_password.php';
 }
 ?>

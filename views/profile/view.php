@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
     <link rel="stylesheet" href="css/style.css">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('studyhub-theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
 </head>
 <body>
 
@@ -18,8 +26,8 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-6 col-lg-3"><a href="index.php?action=home" class="logo"><img src="uploads/logo.png" alt="StudyHub" class="site-logo"></a></div>
-            <div class="col-lg-6 d-none d-lg-block"><ul class="nav-links"><li><a href="index.php?action=home">Accueil</a></li><li><a href="index.php?action=resource&subaction=upload">Publier</a></li><li><a href="index.php?action=profile" class="active">Mon Profil</a></li></ul></div>
-            <div class="col-6 col-lg-3 text-end"><span><i class="ti-user me-1"></i> <?= escape($user['nom']) ?> <a href="index.php?action=logout" class="ms-2 text-danger"><i class="ti-power-off"></i></a></span></div>
+            <div class="col-lg-5 d-none d-lg-block"><ul class="nav-links"><li><a href="index.php?action=home">Accueil</a></li><li><a href="index.php?action=resource&subaction=upload">Publier</a></li><li><a href="index.php?action=profile" class="active">Mon Profil</a></li></ul></div>
+            <div class="col-6 col-lg-4"><div class="nav-right-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Changer le mode"><i class="fa-solid fa-sun" id="themeIcon"></i></button><span class="user-chip"><img src="<?= escape(!empty($user['photo']) ? $user['photo'] : 'https://randomuser.me/api/portraits/men/32.jpg') ?>" class="user-avatar-small"><span class="user-chip-name"><?= escape($user['nom']) ?></span> <a href="index.php?action=logout" class="text-danger"><i class="ti-power-off"></i></a></span></div></div>
         </div>
     </div>
 </nav>
@@ -61,6 +69,7 @@
 <div class="copyright"><p>&copy; 2025 StudyHub - Tous droits réservés</p></div>
 
 <script src="js/validation.js"></script>
+<script src="js/scripts.js"></script>
 <script src="js/profile.js"></script>
 </body>
 </html>

@@ -50,4 +50,30 @@ function generateStarRating($rating) {
     }
     return $stars;
 }
+
+function getAppBaseUrl() {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+    if ($scriptDir === '' || $scriptDir === '.') {
+        return $scheme . '://' . $host;
+    }
+    return $scheme . '://' . $host . $scriptDir;
+}
+
+function sendActivationEmail($email, $fullName, $token) {
+    $activationUrl = getAppBaseUrl() . '/index.php?action=activate_account&token=' . urlencode($token);
+    $subject = 'Activation de votre compte StudyHub';
+    $name = trim((string)$fullName) !== '' ? $fullName : 'utilisateur';
+    $message = "Bonjour " . $name . ",\n\n";
+    $message .= "Votre compte est actuellement inactif.\n";
+    $message .= "Cliquez sur ce lien pour activer votre compte :\n";
+    $message .= $activationUrl . "\n\n";
+    $message .= "Si vous n'etes pas a l'origine de cette demande, ignorez ce message.\n";
+
+    $headers = "From: no-reply@studyhub.local\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    return @mail($email, $subject, $message, $headers);
+}
 ?>

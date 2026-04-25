@@ -12,6 +12,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
     <link rel="stylesheet" href="css/style.css">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('studyhub-theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
     <style>
         .upload-area { border:2px dashed #cbd5e1; border-radius:16px; padding:40px; text-align:center; cursor:pointer; transition:.3s; }
         .upload-area:hover { border-color:var(--primary); background:#f0f9ff; }
@@ -27,13 +35,18 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-6 col-lg-3"><a href="index.php?action=home" class="logo"><img src="uploads/logo.png" alt="StudyHub" class="site-logo"></a></div>
-            <div class="col-6 col-lg-9 text-end">
+            <div class="col-6 col-lg-9">
+                <div class="nav-right-controls">
+                <button type="button" class="theme-toggle" id="themeToggle" title="Changer le mode">
+                    <i class="fa-solid fa-sun" id="themeIcon"></i>
+                </button>
                 <?php if (isset($user) && $user): ?>
-                    <span><i class="ti-user me-1"></i> <?= escape($user['nom']) ?> <a href="index.php?action=logout" class="ms-2 text-danger"><i class="ti-power-off"></i></a></span>
+                    <span class="user-chip"><img src="<?= escape(!empty($user['photo']) ? $user['photo'] : 'https://randomuser.me/api/portraits/men/32.jpg') ?>" class="user-avatar-small"><span class="user-chip-name"><?= escape($user['nom']) ?></span> <a href="index.php?action=logout" class="text-danger"><i class="ti-power-off"></i></a></span>
                 <?php else: ?>
                     <a href="index.php?action=login" class="btn-outline-custom me-2" style="padding:6px 20px;">Connexion</a>
                     <a href="index.php?action=register" class="btn-primary-custom" style="padding:6px 20px;">Inscription</a>
                 <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -199,6 +212,7 @@ function generateDescription() {
 <div class="copyright"><p>&copy; 2025 StudyHub - Tous droits réservés</p></div>
 
 <script src="js/validation.js"></script>
+<script src="js/scripts.js"></script>
 <script src="js/upload.js"></script>
 </body>
 </html>

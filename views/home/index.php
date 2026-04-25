@@ -12,10 +12,19 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Jost:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('studyhub-theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'DM Sans', sans-serif; background: #f0f4f8; }
         :root { --primary: #2563eb; --primary-light: #dbeafe; }
+        :root[data-theme="dark"] { --primary: #60a5fa; --primary-light: #1e293b; }
         h1, h2, h3, h4, h5, h6 { font-family: 'Jost', sans-serif; font-weight: 700; }
         
         .btn-primary-custom { background: var(--primary); color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; border: 2px solid var(--primary); transition: 0.3s; text-decoration: none; display: inline-block; }
@@ -34,6 +43,7 @@
         .user-info { display: flex; align-items: center; gap: 15px; cursor: pointer; }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
         .user-name { font-weight: 500; color: #1e293b; }
+        .nav-right-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; }
         .dropdown-menu-custom { position: absolute; right: 0; top: 50px; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 10px 0; min-width: 180px; display: none; z-index: 1000; }
         .dropdown-menu-custom a { display: block; padding: 10px 20px; color: #1e293b; text-decoration: none; transition: 0.3s; }
         .dropdown-menu-custom a:hover { background: #f1f5f9; color: var(--primary); }
@@ -91,6 +101,34 @@
         .social-links a { display: inline-flex; width: 38px; height: 38px; background: rgba(255,255,255,0.1); border-radius: 50%; align-items: center; justify-content: center; margin-right: 10px; color: white; transition: 0.3s; }
         .social-links a:hover { background: var(--primary); transform: translateY(-3px); }
         .copyright { background: #0a0f1c; text-align: center; padding: 20px; font-size: 14px; color: #64748b; }
+        .theme-toggle { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #dbeafe; background: #fff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s ease; margin-right: 8px; }
+        .theme-toggle i { transition: transform 0.35s ease; }
+        .theme-toggle:active i { transform: rotate(180deg); }
+        .theme-toggle:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25); }
+
+        :root[data-theme="dark"] body { background: #0f172a; color: #e2e8f0; }
+        :root[data-theme="dark"] .navbar-custom { background: #111827; box-shadow: 0 2px 20px rgba(0,0,0,0.35); }
+        :root[data-theme="dark"] .nav-links a { color: #cbd5e1; }
+        :root[data-theme="dark"] .user-name { color: #e2e8f0; }
+        :root[data-theme="dark"] .dropdown-menu-custom { background: #1f2937; }
+        :root[data-theme="dark"] .dropdown-menu-custom a { color: #e5e7eb; }
+        :root[data-theme="dark"] .dropdown-menu-custom a:hover { background: #374151; }
+        :root[data-theme="dark"] .hero { background: linear-gradient(135deg, #111827 0%, #1f2937 100%); }
+        :root[data-theme="dark"] .search-wrapper,
+        :root[data-theme="dark"] .resource-card,
+        :root[data-theme="dark"] .category-section,
+        :root[data-theme="dark"] .contributors-section,
+        :root[data-theme="dark"] .contributor-card { background: #111827; border-color: #334155; }
+        :root[data-theme="dark"] .resource-title a,
+        :root[data-theme="dark"] .contributor-name,
+        :root[data-theme="dark"] h2,
+        :root[data-theme="dark"] h1 { color: #f8fafc; }
+        :root[data-theme="dark"] .text-muted,
+        :root[data-theme="dark"] .resource-stats,
+        :root[data-theme="dark"] .contributor-stats { color: #94a3b8 !important; }
+        :root[data-theme="dark"] .resource-price,
+        :root[data-theme="dark"] .contributor-stats { border-color: #334155; }
+        :root[data-theme="dark"] .theme-toggle { background: #1f2937; border-color: #334155; color: #fbbf24; }
         
         @media (max-width: 768px) { .hero h1 { font-size: 32px; } .nav-links { display: none; } }
         
@@ -124,7 +162,11 @@
                     <li><a href="#contributors">Top Contributeurs</a></li>
                 </ul>
             </div>
-            <div class="col-6 col-lg-3 text-end">
+            <div class="col-6 col-lg-3">
+                <div class="nav-right-controls">
+                <button type="button" class="theme-toggle" id="themeToggle" title="Changer le mode">
+                    <i class="fa-solid fa-sun" id="themeIcon"></i>
+                </button>
                 <?php if ($currentUser): ?>
                     <div class="user-dropdown" id="userDropdown">
                         <div class="user-info">
@@ -143,6 +185,7 @@
                     <a href="index.php?action=login" class="btn-outline-custom me-2" style="padding:6px 20px;">Connexion</a>
                     <a href="index.php?action=register" class="btn-primary-custom" style="padding:6px 20px;">Inscription</a>
                 <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -356,6 +399,24 @@ if(searchInput) {
         searchTimer = setTimeout(function() {
             runDynamicSearch();
         }, 250);
+    });
+}
+
+var themeToggle = document.getElementById('themeToggle');
+var themeIcon = document.getElementById('themeIcon');
+function refreshThemeIcon() {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    if (!themeIcon) return;
+    themeIcon.className = current === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+}
+refreshThemeIcon();
+if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+        var current = document.documentElement.getAttribute('data-theme') || 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('studyhub-theme', next);
+        refreshThemeIcon();
     });
 }
 </script>

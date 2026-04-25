@@ -35,10 +35,33 @@ switch($action) {
             authRegisterGet();
         }
         break;
+
+    case 'activate_account':
+        require_once __DIR__ . '/controllers/authController.php';
+        authActivateAccount();
+        break;
+
+    case 'resend_activation':
+        require_once __DIR__ . '/controllers/authController.php';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            authResendActivationPost();
+        } else {
+            authResendActivationGet();
+        }
+        break;
     
     case 'logout':
         require_once __DIR__ . '/controllers/authController.php';
         authLogout();
+        break;
+    
+    case 'forgot_password':
+        require_once __DIR__ . '/controllers/authController.php';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            authForgotPasswordPost();
+        } else {
+            authForgotPasswordGet();
+        }
         break;
     
     case 'resource':
@@ -100,7 +123,11 @@ switch($action) {
     case 'admin':
         require_once __DIR__ . '/controllers/adminController.php';
         if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 0) {
-            adminLoginGet();
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                adminLoginPost();
+            } else {
+                adminLoginGet();
+            }
         } elseif ($subaction === 'dashboard') {
             adminDashboard();
         } elseif ($subaction === 'users') {
@@ -125,6 +152,8 @@ switch($action) {
             adminViewUser($id);
         } elseif ($subaction === 'delete_user') {
             adminDeleteUser($id);
+        } elseif ($subaction === 'toggle_user_status') {
+            adminToggleUserStatus($id);
         } elseif ($subaction === 'edit_resource') {
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 adminEditResourcePost($id);
