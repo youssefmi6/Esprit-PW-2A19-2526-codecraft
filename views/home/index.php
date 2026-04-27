@@ -15,9 +15,12 @@
     <script>
         (function () {
             var savedTheme = localStorage.getItem('studyhub-theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                return;
+            }
             var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            var theme = savedTheme || (prefersDark ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
         })();
     </script>
     <style>
@@ -402,23 +405,7 @@ if(searchInput) {
     });
 }
 
-var themeToggle = document.getElementById('themeToggle');
-var themeIcon = document.getElementById('themeIcon');
-function refreshThemeIcon() {
-    var current = document.documentElement.getAttribute('data-theme') || 'light';
-    if (!themeIcon) return;
-    themeIcon.className = current === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
-}
-refreshThemeIcon();
-if (themeToggle) {
-    themeToggle.addEventListener('click', function () {
-        var current = document.documentElement.getAttribute('data-theme') || 'light';
-        var next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('studyhub-theme', next);
-        refreshThemeIcon();
-    });
-}
+// Theme toggle handled globally in js/scripts.js
 </script>
 
 <footer class="footer">
