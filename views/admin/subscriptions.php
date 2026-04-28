@@ -53,6 +53,7 @@
             <div class="nav-item"><a href="index.php?action=admin&subaction=subscriptions" class="nav-link active"><i class="bi bi-star-fill"></i><span>Abonnements</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=users" class="nav-link"><i class="bi bi-people-fill"></i><span>Utilisateurs</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=resources" class="nav-link"><i class="bi bi-folder-fill"></i><span>Ressources</span></a></div>
+            <div class="nav-item"><a href="index.php?action=admin&subaction=playlists" class="nav-link"><i class="bi bi-collection-play-fill"></i><span>Playlists</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=comments" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Commentaires</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=profile" class="nav-link"><i class="bi bi-person-fill"></i><span>Mon profil</span></a></div>
             <div class="nav-item logout-link"><a href="index.php?action=logout" class="nav-link"><i class="bi bi-box-arrow-right"></i><span>Déconnexion</span></a></div>
@@ -84,6 +85,13 @@
             <?php foreach ($subStats['by_tier'] as $tierName => $tierCount): ?>
             <div class="col-6 col-md-3"><div class="mini-stat"><small class="text-muted"><?= escape($tierName) ?></small><strong><?= number_format((int) $tierCount) ?></strong></div></div>
             <?php endforeach; ?>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><div class="mini-stat"><small class="text-muted">Total abonnements</small><strong><?= number_format((int) ($subOverviewStats['total_abonnements'] ?? 0)) ?></strong></div></div>
+            <div class="col-6 col-md-3"><div class="mini-stat"><small class="text-muted">Abonnements actifs</small><strong><?= number_format((int) ($subOverviewStats['total_active'] ?? 0)) ?></strong></div></div>
+            <div class="col-6 col-md-3"><div class="mini-stat"><small class="text-muted">Abonnements expirés</small><strong><?= number_format((int) ($subOverviewStats['total_expired'] ?? 0)) ?></strong></div></div>
+            <div class="col-6 col-md-3"><div class="mini-stat"><small class="text-muted">Types publiés / total</small><strong><?= number_format((int) ($subOverviewStats['total_published_plans'] ?? 0)) ?> / <?= number_format((int) ($subOverviewStats['total_plans'] ?? 0)) ?></strong></div></div>
         </div>
 
         <div class="content-card mb-4">

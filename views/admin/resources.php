@@ -49,6 +49,7 @@
             <div class="nav-item"><a href="index.php?action=admin&subaction=subscriptions" class="nav-link"><i class="bi bi-star-fill"></i><span>Abonnements</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=users" class="nav-link"><i class="bi bi-people-fill"></i><span>Utilisateurs</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=resources" class="nav-link active"><i class="bi bi-folder-fill"></i><span>Ressources</span></a></div>
+            <div class="nav-item"><a href="index.php?action=admin&subaction=playlists" class="nav-link"><i class="bi bi-collection-play-fill"></i><span>Playlists</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=comments" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Commentaires</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=profile" class="nav-link"><i class="bi bi-person-fill"></i><span>Mon profil</span></a></div>
             <div class="nav-item logout-link"><a href="index.php?action=logout" class="nav-link"><i class="bi bi-box-arrow-right"></i><span>Déconnexion</span></a></div>
@@ -76,8 +77,8 @@
     </div>
 
     <div class="modal fade" id="addResourceModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header" style="background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); color:white;"><h5 class="modal-title"><i class="bi bi-plus-circle-fill me-2"></i>Ajouter une ressource</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-        <form method="POST" enctype="multipart/form-data" action="index.php?action=admin&subaction=resources"><input type="hidden" name="action" value="add"><div class="modal-body"><div class="row"><div class="col-md-8 mb-3"><label class="form-label">Titre *</label><input type="text" name="titre" class="form-control" required></div><div class="col-md-4 mb-3"><label class="form-label">Type *</label><select name="type" class="form-select" required><option value="Cours">Cours</option><option value="Exercice">Exercice</option><option value="Examen">Examen</option><option value="TD">TD</option><option value="TP">TP</option><option value="Résumé">Résumé</option></select></div></div>
-        <div class="mb-3"><label class="form-label">Description *</label><textarea name="description" class="form-control" rows="3" required></textarea></div>
+        <form method="POST" enctype="multipart/form-data" action="index.php?action=admin&subaction=resources" id="adminAddResourceForm" novalidate><input type="hidden" name="action" value="add"><div class="modal-body"><div class="row"><div class="col-md-8 mb-3"><label class="form-label">Titre *</label><input type="text" name="titre" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label">Type *</label><select name="type" class="form-select"><option value="Cours">Cours</option><option value="Exercice">Exercice</option><option value="Examen">Examen</option><option value="TD">TD</option><option value="TP">TP</option><option value="Résumé">Résumé</option></select></div></div>
+        <div class="mb-3"><label class="form-label">Description *</label><textarea name="description" class="form-control" rows="3"></textarea></div>
         <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Matière</label><input type="text" name="matiere" class="form-control" placeholder="Mathématiques, Physique..."></div><div class="col-md-6 mb-3"><label class="form-label">Niveau</label><select name="niveau" class="form-select"><option value="">Sélectionner</option><option value="Licence 1">Licence 1</option><option value="Licence 2">Licence 2</option><option value="Licence 3">Licence 3</option><option value="Master 1">Master 1</option><option value="Master 2">Master 2</option></select></div></div>
         <div class="row"><div class="col-md-4 mb-3"><label class="form-label">Pages</label><input type="number" name="pages" class="form-control" value="0"></div><div class="col-md-4 mb-3"><label class="form-label">Accès</label><select name="acces" class="form-select" id="accessSelect"><option value="gratuit">Gratuit</option><option value="payant">Payant</option></select></div><div class="col-md-4 mb-3" id="priceRow" style="display:none;"><label class="form-label">Prix (€)</label><input type="number" name="prix" class="form-control" value="0" step="0.01"></div></div>
         <div class="mb-3"><label class="form-label">Fichier (PDF)</label><input type="file" name="fichier" class="form-control" accept=".pdf"></div>
@@ -87,5 +88,7 @@
 
     <script>document.getElementById('accessSelect')?.addEventListener('change', function() { document.getElementById('priceRow').style.display = this.value === 'payant' ? 'flex' : 'none'; });</script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/validation.js"></script>
+    <script src="../js/admin-forms.js"></script>
 </body>
 </html>

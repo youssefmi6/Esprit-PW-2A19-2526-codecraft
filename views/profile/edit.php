@@ -7,6 +7,7 @@
     <meta charset="UTF-8">
     <title>Modifier mon profil - StudyHub</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Jost:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
@@ -26,12 +27,12 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4"><h3>✏️ Modifier mon profil</h3><a href="index.php?action=profile" class="btn-outline-custom" style="padding:8px 24px;">← Retour</a></div>
     <div class="row justify-content-center"><div class="col-md-8"><div class="form-card">
-        <form method="POST" enctype="multipart/form-data" id="profileForm">
+        <form method="POST" enctype="multipart/form-data" id="profileForm" novalidate>
             <div class="text-center"><img src="<?= !empty($user['photo']) ? $user['photo'] : 'https://randomuser.me/api/portraits/men/32.jpg' ?>" class="profile-avatar-preview" id="avatarPreview" onclick="document.getElementById('photoInput').click()"><div><label class="btn-outline-custom" style="cursor:pointer; padding:8px 20px;"><i class="ti-camera"></i> Changer la photo<input type="file" id="photoInput" name="photo" accept="image/*" style="display:none;" onchange="previewImage(this)"></label></div></div>
-            <div class="row"><div class="col-md-6 mb-3"><label>Nom</label><input type="text" name="nom" class="form-control" value="<?= escape($user['nom']) ?>" required></div><div class="col-md-6 mb-3"><label>Prénom</label><input type="text" name="prenom" class="form-control" value="<?= escape($user['prenom']) ?>" required></div></div>
+            <div class="row"><div class="col-md-6 mb-3"><label>Nom</label><input type="text" name="nom" class="form-control" value="<?= escape($user['nom']) ?>"></div><div class="col-md-6 mb-3"><label>Prénom</label><input type="text" name="prenom" class="form-control" value="<?= escape($user['prenom']) ?>"></div></div>
             <div class="mb-3"><label>Université</label><input type="text" name="universite" class="form-control" value="<?= escape($user['universite']) ?>"></div>
             <div class="mb-3"><label>Filière</label><input type="text" name="filiere" class="form-control" value="<?= escape($user['filiere']) ?>"></div>
-            <div class="mb-3"><label>Email</label><input type="email" name="email" class="form-control" value="<?= escape($user['email']) ?>" required></div>
+            <div class="mb-3"><label>Email</label><input type="email" name="email" class="form-control" value="<?= escape($user['email']) ?>"></div>
             <div class="mb-3"><label>Téléphone</label><input type="tel" name="tel" class="form-control" value="<?= escape($user['tel']) ?>"></div>
             <div class="mb-3"><label>Bio</label><textarea name="bio" class="form-control" rows="3"><?= escape($user['bio']) ?></textarea></div>
             <div class="mb-3"><label>Nouveau mot de passe</label><input type="password" name="mdp" class="form-control" placeholder="Laisser vide pour ne pas changer"></div>

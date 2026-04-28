@@ -51,8 +51,8 @@
         <div class="content-card">
             <?php if(isset($success)): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
             <?php if(isset($error)): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
-            <form method="POST"><div class="row"><div class="col-md-6 mb-3"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($user['nom']) ?>" required></div><div class="col-md-6 mb-3"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($user['prenom']) ?>" required></div></div>
-            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>" required></div>
+            <form method="POST" id="adminEditUserForm" novalidate><div class="row"><div class="col-md-6 mb-3"><label class="form-label">Nom</label><input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($user['nom']) ?>"></div><div class="col-md-6 mb-3"><label class="form-label">Prénom</label><input type="text" name="prenom" class="form-control" value="<?= htmlspecialchars($user['prenom']) ?>"></div></div>
+            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>"></div>
             <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Université</label><input type="text" name="universite" class="form-control" value="<?= htmlspecialchars($user['universite']) ?>"></div><div class="col-md-6 mb-3"><label class="form-label">Filière</label><input type="text" name="filiere" class="form-control" value="<?= htmlspecialchars($user['filiere']) ?>"></div></div>
             <div class="mb-3"><label class="form-label">Rôle</label><select name="role" class="form-select"><option value="1" <?= $user['role'] == 1 ? 'selected' : '' ?>>Utilisateur</option><option value="0" <?= $user['role'] == 0 ? 'selected' : '' ?>>Administrateur</option></select></div>
             <div class="mb-3"><label class="form-label">Nouveau mot de passe</label><input type="password" name="mdp" class="form-control" placeholder="Laisser vide pour ne pas changer"></div>
@@ -60,5 +60,7 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/validation.js"></script>
+    <script src="../js/admin-forms.js"></script>
 </body>
 </html>

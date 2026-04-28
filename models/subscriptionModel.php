@@ -13,9 +13,13 @@ function getActiveSubscriptionByUser($pdo, $userId) {
 }
 
 function getNextPrimaryId($pdo, $table, $column = 'id') {
-    $stmt = $pdo->query("SELECT COALESCE(MAX($column), 0) + 1 AS next_id FROM $table");
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+        return 1;
+    }
+    $stmt = $pdo->query("SELECT COALESCE(MAX(`$column`), 0) + 1 AS next_id FROM `$table`");
     $row = $stmt->fetch();
-    return intval($row['next_id'] ?? 1);
+    $n = (int) ($row['next_id'] ?? 1);
+    return max(1, $n);
 }
 
 /**
@@ -75,13 +79,15 @@ function upsertUserSubscriptionByCatalogPlan($pdo, $userId, $planId, $durationDa
     $desc = mb_substr($plan['description'], 0, 500);
     $prix = (int) $plan['prix'];
 
+    $planIdBound = ((int) $planId) > 0 ? (int) $planId : null;
+
     $existing = getActiveSubscriptionByUser($pdo, $userId);
     if ($existing) {
         $stmt = $pdo->prepare(
             "UPDATE abonemment SET nom = ?, descreption = ?, prix = ?, date_debut = ?, date_fin = ?,
              card_holder = ?, payment_last4 = ?, plan_id = ? WHERE id = ?"
         );
-        return $stmt->execute([$nom, $desc, $prix, $startDate, $endDate, $holder, $last4, $planId, $existing['id']]);
+        return $stmt->execute([$nom, $desc, $prix, $startDate, $endDate, $holder, $last4, $planIdBound, $existing['id']]);
     }
 
     $newId = getNextPrimaryId($pdo, 'abonemment', 'id');
@@ -89,13 +95,23 @@ function upsertUserSubscriptionByCatalogPlan($pdo, $userId, $planId, $durationDa
         "INSERT INTO abonemment (id, id_user, plan_id, nom, descreption, prix, date_debut, date_fin, card_holder, payment_last4)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    return $stmt->execute([$newId, $userId, $planId, $nom, $desc, $prix, $startDate, $endDate, $holder, $last4]);
+    return $stmt->execute([$newId, $userId, $planIdBound, $nom, $desc, $prix, $startDate, $endDate, $holder, $last4]);
 }
 
 function getAccessiblePlaylistsForUser($pdo, $userId) {
+    require_once __DIR__ . '/playlistModel.php';
     $active = getActiveSubscriptionByUser($pdo, $userId);
+    $manualPlaylists = getManualPlaylistsForSubscriptionArea($pdo);
+
     if ($active && !empty($active['plan_id']) && subscriptionPlansTablesExist($pdo)) {
-        return getCatalogPlanResourcesAsPlaylistRows($pdo, (int) $active['plan_id']);
+        return array_merge(
+            getCatalogPlanResourcesAsPlaylistRows($pdo, (int) $active['plan_id']),
+            $manualPlaylists
+        );
+    }
+
+    if ($active) {
+        return $manualPlaylists;
     }
 
     return [];
@@ -184,6 +200,54 @@ function saveSubscriptionPlanResources($pdo, $planId, array $resourceIds) {
     return true;
 }
 
+function ensureSubscriptionPlanPlaylistsTable($pdo) {
+    if (!subscriptionPlansTablesExist($pdo)) {
+        return false;
+    }
+    try {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS subscription_plan_playlists (
+                id INT(11) NOT NULL AUTO_INCREMENT,
+                plan_id INT(11) NOT NULL,
+                playlist_group_id INT(11) NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY uniq_plan_playlist (plan_id, playlist_group_id),
+                KEY idx_plan_playlist_plan (plan_id),
+                CONSTRAINT spp_plan_fk FOREIGN KEY (plan_id) REFERENCES subscription_plans(id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+        );
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function getPlaylistGroupIdsForPlan($pdo, $planId) {
+    if (!ensureSubscriptionPlanPlaylistsTable($pdo)) {
+        return [];
+    }
+    $stmt = $pdo->prepare('SELECT playlist_group_id FROM subscription_plan_playlists WHERE plan_id = ? ORDER BY id ASC');
+    $stmt->execute([(int) $planId]);
+    return array_map('intval', array_column($stmt->fetchAll(), 'playlist_group_id'));
+}
+
+function saveSubscriptionPlanPlaylists($pdo, $planId, array $playlistGroupIds) {
+    if (!ensureSubscriptionPlanPlaylistsTable($pdo)) {
+        return false;
+    }
+    $playlistGroupIds = array_values(array_unique(array_filter(array_map('intval', $playlistGroupIds), function ($v) {
+        return $v > 0;
+    })));
+    $pdo->prepare('DELETE FROM subscription_plan_playlists WHERE plan_id = ?')->execute([(int) $planId]);
+    foreach ($playlistGroupIds as $gid) {
+        $pdo->prepare(
+            'INSERT INTO subscription_plan_playlists (plan_id, playlist_group_id) VALUES (?, ?)'
+        )->execute([(int) $planId, $gid]);
+    }
+    return true;
+}
+
 function createSubscriptionPlan($pdo, $name, $description, $prix, $published = 0) {
     $stmt = $pdo->prepare(
         'INSERT INTO subscription_plans (name, description, prix, published, sort_order) VALUES (?,?,?,?,0)'
@@ -238,6 +302,7 @@ function getCatalogPlanResourcesAsPlaylistRows($pdo, $planId) {
             'id' => 0,
             'playlist_nom' => $plan['name'],
             'playlist_description' => mb_substr($plan['description'], 0, 50),
+            'playlist_photo' => '',
             'id_abonement' => 0,
             'id_res' => $r['id_res'],
             'titre' => $r['titre'],
@@ -311,18 +376,21 @@ function adminBuildSubscriptionPlanFields($post) {
 }
 
 function createAbonnementAdmin($pdo, array $data) {
-    $planId = isset($data['plan_id']) && $data['plan_id'] !== '' && $data['plan_id'] !== null
-        ? (int) $data['plan_id'] : null;
+    $rawPlan = $data['plan_id'] ?? null;
+    $planId = ($rawPlan !== '' && $rawPlan !== null && (int) $rawPlan > 0) ? (int) $rawPlan : null;
+
+    $newId = getNextPrimaryId($pdo, 'abonemment', 'id');
     $stmt = $pdo->prepare(
-        "INSERT INTO abonemment (id_user, plan_id, nom, descreption, prix, date_debut, date_fin, card_holder, payment_last4)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO abonemment (id, id_user, plan_id, nom, descreption, prix, date_debut, date_fin, card_holder, payment_last4)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     return $stmt->execute([
-        $data['id_user'],
+        $newId,
+        (int) $data['id_user'],
         $planId,
         $data['nom'],
         $data['descreption'],
-        $data['prix'],
+        (int) $data['prix'],
         $data['date_debut'],
         $data['date_fin'],
         $data['card_holder'] ?? null,
@@ -331,8 +399,8 @@ function createAbonnementAdmin($pdo, array $data) {
 }
 
 function updateAbonnementAdmin($pdo, $id, array $data) {
-    $planId = isset($data['plan_id']) && $data['plan_id'] !== '' && $data['plan_id'] !== null
-        ? (int) $data['plan_id'] : null;
+    $rawPlan = $data['plan_id'] ?? null;
+    $planId = ($rawPlan !== '' && $rawPlan !== null && (int) $rawPlan > 0) ? (int) $rawPlan : null;
     $stmt = $pdo->prepare(
         "UPDATE abonemment SET id_user = ?, plan_id = ?, nom = ?, descreption = ?, prix = ?, date_debut = ?, date_fin = ?,
  card_holder = ?, payment_last4 = ? WHERE id = ?"
@@ -386,6 +454,27 @@ function getSubscriptionDashboardStats($pdo) {
         'total_active_subscribers' => $total,
         'by_tier' => $byTier,
         'other_tier' => 0
+    ];
+}
+
+function getSubscriptionAdminOverviewStats($pdo) {
+    $totalAbonnements = (int) $pdo->query("SELECT COUNT(*) FROM abonemment")->fetchColumn();
+    $totalActive = (int) $pdo->query("SELECT COUNT(*) FROM abonemment WHERE date_fin >= CURDATE()")->fetchColumn();
+    $totalExpired = (int) $pdo->query("SELECT COUNT(*) FROM abonemment WHERE date_fin < CURDATE()")->fetchColumn();
+
+    $totalPlans = 0;
+    $totalPublishedPlans = 0;
+    if (subscriptionPlansTablesExist($pdo)) {
+        $totalPlans = (int) $pdo->query("SELECT COUNT(*) FROM subscription_plans")->fetchColumn();
+        $totalPublishedPlans = (int) $pdo->query("SELECT COUNT(*) FROM subscription_plans WHERE published = 1")->fetchColumn();
+    }
+
+    return [
+        'total_abonnements' => $totalAbonnements,
+        'total_active' => $totalActive,
+        'total_expired' => $totalExpired,
+        'total_plans' => $totalPlans,
+        'total_published_plans' => $totalPublishedPlans
     ];
 }
 

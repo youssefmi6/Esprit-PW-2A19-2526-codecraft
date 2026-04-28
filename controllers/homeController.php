@@ -8,14 +8,28 @@ function homeIndex() {
     require_once __DIR__ . '/../models/subscriptionModel.php';
 
     $homeCatalogPlans = getPublishedCatalogPlans($pdo);
-    
-    $resources = getAllResources($pdo);
-    $matieres = getResourcesByMatiere($pdo);
-    
-    $stmt = $pdo->query("SELECT u.*, COUNT(r.id_res) as resource_count, COALESCE(SUM(r.downloads), 0) as total_downloads 
-                         FROM users u LEFT JOIN ressource r ON u.id = r.id 
-                         GROUP BY u.id ORDER BY total_downloads DESC LIMIT 4");
-    $contributors = $stmt->fetchAll();
+
+    $resources = [];
+    $matieres = [];
+    $contributors = [];
+    $homeDbWarning = null;
+
+    try {
+        $resources = getAllResources($pdo);
+        $matieres = getResourcesByMatiere($pdo);
+
+        $stmt = $pdo->query("SELECT u.*, COUNT(r.id_res) as resource_count, COALESCE(SUM(r.downloads), 0) as total_downloads 
+                             FROM users u LEFT JOIN ressource r ON u.id = r.id 
+                             GROUP BY u.id ORDER BY total_downloads DESC LIMIT 4");
+        $contributors = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        // Evite un fatal error si la table ressource est absente/corrompue.
+        if ($e->getCode() === '42S02') {
+            $homeDbWarning = "Table 'ressource' indisponible. Importez/reparez la base avec studehub.sql.";
+        } else {
+            throw $e;
+        }
+    }
     
     $currentUser = getCurrentUser($pdo);
     

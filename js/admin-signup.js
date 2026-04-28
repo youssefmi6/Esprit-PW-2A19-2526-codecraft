@@ -1,9 +1,9 @@
 // admin-signup.js - Validation du formulaire admin
 
 document.addEventListener('DOMContentLoaded', function() {
-    const adminForm = document.querySelector('.login-container form');
+    const adminForm = document.getElementById('loginForm');
     if (!adminForm) return;
-    
+
     const emailInput = adminForm.querySelector('input[name="email"]');
     const passwordInput = adminForm.querySelector('input[name="password"]');
     

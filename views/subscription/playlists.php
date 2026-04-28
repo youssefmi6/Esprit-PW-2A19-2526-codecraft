@@ -18,6 +18,7 @@ function rankName($rank) {
         body { background: #f8fafc; font-family: Arial, sans-serif; }
         .playlist-card { border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; padding: 18px; margin-bottom: 16px; }
         .resource-item { border-top: 1px dashed #e2e8f0; padding-top: 10px; margin-top: 10px; }
+        .playlist-cover { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -54,6 +55,9 @@ function rankName($rank) {
                     <span class="badge text-bg-secondary">Inclus dans votre offre</span>
                     <?php endif; ?>
                 </div>
+                <?php if (!empty($playlist['photo'])): ?>
+                    <img src="<?php echo escape($playlist['photo']); ?>" alt="Photo playlist" class="playlist-cover">
+                <?php endif; ?>
                 <p class="text-muted mb-2"><?php echo escape($playlist['description']); ?></p>
 
                 <?php if (empty($playlist['resources'])): ?>

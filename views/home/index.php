@@ -192,6 +192,12 @@ function cleanOutput($str) {
 </section>
 
 <div class="container" id="resources">
+    <?php if (!empty($homeDbWarning)): ?>
+        <div class="alert alert-warning mb-4" role="alert">
+            <?php echo cleanOutput($homeDbWarning); ?>
+        </div>
+    <?php endif; ?>
+
     <div class="category-section">
         <div class="text-center mb-5">
             <h2>Matières populaires</h2>
