@@ -15,6 +15,11 @@ try {
     die("Erreur de connexion : " . $e->getMessage());
 }
 
+$stripeLocalConfigPath = __DIR__ . '/config/stripe.local.php';
+if (file_exists($stripeLocalConfigPath)) {
+    require_once $stripeLocalConfigPath;
+}
+
 // Fonctions d'authentification
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
@@ -59,6 +64,22 @@ function getAppBaseUrl() {
         return $scheme . '://' . $host;
     }
     return $scheme . '://' . $host . $scriptDir;
+}
+
+function getStripeConfigValue(string $key, string $default = ''): string {
+    $envValue = getenv($key);
+    if (is_string($envValue) && trim($envValue) !== '') {
+        return trim($envValue);
+    }
+
+    if (defined($key)) {
+        $constValue = constant($key);
+        if (is_string($constValue) && trim($constValue) !== '') {
+            return trim($constValue);
+        }
+    }
+
+    return $default;
 }
 
 function sendActivationEmail($email, $fullName, $token) {

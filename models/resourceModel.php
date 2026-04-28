@@ -37,6 +37,16 @@ class ResourceModel
     {
         return incrementDownloads($pdo, $id);
     }
+
+    public static function hasUserPurchasedResource(PDO $pdo, int $userId, int $resourceId): bool
+    {
+        return hasUserPurchasedResource($pdo, $userId, $resourceId);
+    }
+
+    public static function registerResourcePurchase(PDO $pdo, int $userId, int $resourceId, string $paymentRef = ''): bool
+    {
+        return registerResourcePurchase($pdo, $userId, $resourceId, $paymentRef);
+    }
 }
 
 // ========== FONCTIONS DE BASE ==========
@@ -161,6 +171,8 @@ function deleteResource($pdo, $id, $userId = null) {
 
         $pdo->prepare("DELETE FROM comment WHERE id_res = ?")->execute([$id]);
         $pdo->prepare("DELETE FROM ratings WHERE id_res = ?")->execute([$id]);
+        ensureResourcePurchasesTable($pdo);
+        $pdo->prepare("DELETE FROM resource_purchases WHERE resource_id = ?")->execute([$id]);
 
         if ($userId) {
             $stmt = $pdo->prepare("DELETE FROM ressource WHERE id_res = ? AND id = ?");
@@ -178,6 +190,79 @@ function deleteResource($pdo, $id, $userId = null) {
         }
         throw $e;
     }
+}
+
+function ensureResourcePurchasesTable($pdo): void {
+    static $tableChecked = false;
+    if ($tableChecked) {
+        return;
+    }
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS resource_purchases (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        resource_id INT NOT NULL,
+        payment_reference VARCHAR(191) DEFAULT NULL,
+        amount DECIMAL(10,2) DEFAULT NULL,
+        currency VARCHAR(12) DEFAULT NULL,
+        purchased_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_resource (user_id, resource_id),
+        INDEX idx_user_id (user_id),
+        INDEX idx_resource_id (resource_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $tableChecked = true;
+}
+
+function registerResourcePurchase($pdo, $userId, $resourceId, $paymentRef = '') {
+    ensureResourcePurchasesTable($pdo);
+
+    $resource = getResourceById($pdo, $resourceId);
+    $amount = $resource ? (float)($resource['prix'] ?? 0) : 0.0;
+    $currency = strtolower(getStripeConfigValue('STRIPE_CURRENCY', 'eur'));
+
+    $stmt = $pdo->prepare("INSERT INTO resource_purchases (user_id, resource_id, payment_reference, amount, currency, purchased_at)
+                           VALUES (?, ?, ?, ?, ?, NOW())
+                           ON DUPLICATE KEY UPDATE
+                               payment_reference = VALUES(payment_reference),
+                               amount = VALUES(amount),
+                               currency = VALUES(currency)");
+    return $stmt->execute([
+        (int)$userId,
+        (int)$resourceId,
+        $paymentRef !== '' ? $paymentRef : null,
+        $amount,
+        $currency
+    ]);
+}
+
+function hasUserPurchasedResource($pdo, $userId, $resourceId) {
+    ensureResourcePurchasesTable($pdo);
+    $stmt = $pdo->prepare("SELECT 1 FROM resource_purchases WHERE user_id = ? AND resource_id = ? LIMIT 1");
+    $stmt->execute([(int)$userId, (int)$resourceId]);
+    return (bool)$stmt->fetchColumn();
+}
+
+function getPurchasedResourceIdsByUser($pdo, $userId): array {
+    ensureResourcePurchasesTable($pdo);
+    $stmt = $pdo->prepare("SELECT resource_id FROM resource_purchases WHERE user_id = ?");
+    $stmt->execute([(int)$userId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    if (!$rows) {
+        return [];
+    }
+    return array_map('intval', $rows);
+}
+
+function getPurchasedResourcesByUser($pdo, $userId): array {
+    ensureResourcePurchasesTable($pdo);
+    $stmt = $pdo->prepare("SELECT r.*, rp.purchased_at
+                           FROM resource_purchases rp
+                           JOIN ressource r ON r.id_res = rp.resource_id
+                           WHERE rp.user_id = ?
+                           ORDER BY rp.purchased_at DESC");
+    $stmt->execute([(int)$userId]);
+    return $stmt->fetchAll();
 }
 
 /**
@@ -219,13 +304,18 @@ function getTopResources($pdo, $limit = 5) {
 /**
  * Récupère les statistiques des ressources par matière
  */
-function getResourcesByMatiere($pdo, $limit = 4) {
-    $limit = intval($limit);
-    $stmt = $pdo->query("SELECT matiere, COUNT(*) as count 
-                         FROM ressource 
-                         GROUP BY matiere 
-                         ORDER BY count DESC 
-                         LIMIT $limit");
+function getResourcesByMatiere($pdo, $limit = null) {
+    $sql = "SELECT matiere, COUNT(*) as count 
+            FROM ressource 
+            GROUP BY matiere 
+            ORDER BY count DESC";
+
+    if ($limit !== null) {
+        $limit = max(1, intval($limit));
+        $sql .= " LIMIT $limit";
+    }
+
+    $stmt = $pdo->query($sql);
     return $stmt->fetchAll();
 }
 

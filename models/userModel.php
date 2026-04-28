@@ -14,6 +14,10 @@ class UserModel
         $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1");
         $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS activation_token VARCHAR(64) DEFAULT NULL");
         $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS activation_token_expires_at DATETIME DEFAULT NULL");
+
+        // Face ID (optional)
+        $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS face_enabled TINYINT(1) NOT NULL DEFAULT 0");
+        $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS face_descriptor LONGTEXT DEFAULT NULL");
     }
 
     public static function getUserById(PDO $pdo, int $id)
@@ -40,17 +44,37 @@ class UserModel
         return $stmt->fetch();
     }
 
-    public static function getAllUsers(PDO $pdo, string $search = ''): array
+    public static function getAllUsers(PDO $pdo, string $search = '', int $limit = 0, int $offset = 0): array
     {
         self::ensureUserActivationColumns($pdo);
         if ($search !== '') {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE nom LIKE ? OR prenom LIKE ? OR email LIKE ? ORDER BY id DESC");
+            $sql = "SELECT * FROM users WHERE nom LIKE ? OR prenom LIKE ? OR email LIKE ? ORDER BY id DESC";
+            if ($limit > 0) {
+                $sql .= " LIMIT " . (int)$limit . " OFFSET " . max(0, (int)$offset);
+            }
+            $stmt = $pdo->prepare($sql);
             $like = '%' . $search . '%';
             $stmt->execute([$like, $like, $like]);
             return $stmt->fetchAll();
         }
 
-        return $pdo->query("SELECT * FROM users ORDER BY id DESC")->fetchAll();
+        $sql = "SELECT * FROM users ORDER BY id DESC";
+        if ($limit > 0) {
+            $sql .= " LIMIT " . (int)$limit . " OFFSET " . max(0, (int)$offset);
+        }
+        return $pdo->query($sql)->fetchAll();
+    }
+
+    public static function countUsers(PDO $pdo, string $search = ''): int
+    {
+        self::ensureUserActivationColumns($pdo);
+        if ($search !== '') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) as c FROM users WHERE nom LIKE ? OR prenom LIKE ? OR email LIKE ?");
+            $like = '%' . $search . '%';
+            $stmt->execute([$like, $like, $like]);
+            return (int)($stmt->fetch()['c'] ?? 0);
+        }
+        return (int)($pdo->query("SELECT COUNT(*) as c FROM users")->fetch()['c'] ?? 0);
     }
 
     public static function createUser(PDO $pdo, array $data): string
@@ -101,6 +125,20 @@ class UserModel
         self::ensureUserActivationColumns($pdo);
         $stmt = $pdo->prepare("UPDATE users SET mdp = ? WHERE id = ?");
         return $stmt->execute([$hashedPassword, $id]);
+    }
+
+    public static function updateUserPhoto(PDO $pdo, int $id, string $photo): bool
+    {
+        self::ensureUserActivationColumns($pdo);
+        $stmt = $pdo->prepare("UPDATE users SET photo = ? WHERE id = ?");
+        return $stmt->execute([$photo, $id]);
+    }
+
+    public static function updateUserFace(PDO $pdo, int $id, int $enabled, ?string $descriptorJson): bool
+    {
+        self::ensureUserActivationColumns($pdo);
+        $stmt = $pdo->prepare("UPDATE users SET face_enabled = ?, face_descriptor = ? WHERE id = ?");
+        return $stmt->execute([$enabled, $descriptorJson, $id]);
     }
 
     public static function setUserActiveStatus(PDO $pdo, int $id, int $isActive): bool
@@ -159,12 +197,15 @@ class UserModel
 function getUserById($pdo, $id) { return UserModel::getUserById($pdo, (int) $id); }
 function getUserByEmail($pdo, $email) { return UserModel::getUserByEmail($pdo, (string) $email); }
 function getUserByPhone($pdo, $phone) { return UserModel::getUserByPhone($pdo, (string) $phone); }
-function getAllUsers($pdo, $search = '') { return UserModel::getAllUsers($pdo, (string) $search); }
+function getAllUsers($pdo, $search = '', $limit = 0, $offset = 0) { return UserModel::getAllUsers($pdo, (string) $search, (int)$limit, (int)$offset); }
+function countUsers($pdo, $search = '') { return UserModel::countUsers($pdo, (string)$search); }
 function createUser($pdo, $data) { return UserModel::createUser($pdo, (array) $data); }
 function updateUser($pdo, $id, $data) { return UserModel::updateUser($pdo, (int) $id, (array) $data); }
 function deleteUser($pdo, $id) { return UserModel::deleteUser($pdo, (int) $id); }
 function updateUserRole($pdo, $id, $role) { return UserModel::updateUserRole($pdo, (int) $id, (int) $role); }
 function updateUserPasswordById($pdo, $id, $hashedPassword) { return UserModel::updateUserPassword($pdo, (int) $id, (string) $hashedPassword); }
+function updateUserPhotoById($pdo, $id, $photo) { return UserModel::updateUserPhoto($pdo, (int)$id, (string)$photo); }
+function updateUserFace($pdo, $id, $enabled, $descriptorJson = null) { return UserModel::updateUserFace($pdo, (int)$id, (int)$enabled, $descriptorJson !== null ? (string)$descriptorJson : null); }
 function setUserActiveStatus($pdo, $id, $isActive) { return UserModel::setUserActiveStatus($pdo, (int)$id, (int)$isActive); }
 function setActivationToken($pdo, $id, $token, $expiresAt = null) { return UserModel::setActivationToken($pdo, (int)$id, (string)$token, $expiresAt !== null ? (string)$expiresAt : null); }
 function getUserByActivationToken($pdo, $token) { return UserModel::getUserByActivationToken($pdo, (string)$token); }

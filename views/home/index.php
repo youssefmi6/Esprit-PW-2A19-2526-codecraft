@@ -15,9 +15,12 @@
     <script>
         (function () {
             var savedTheme = localStorage.getItem('studyhub-theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                return;
+            }
             var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            var theme = savedTheme || (prefersDark ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
         })();
     </script>
     <style>
@@ -79,6 +82,55 @@
         .category-item { text-align: center; padding: 20px; transition: 0.3s; border-radius: 16px; cursor: pointer; }
         .category-item:hover { background: var(--primary-light); transform: translateY(-5px); }
         .category-item > .category-img-wrapper { margin-bottom: 12px; }
+        .categories-carousel {
+            position: relative;
+            padding: 0 52px;
+        }
+        .categories-track {
+            display: flex;
+            gap: 0;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .categories-track::-webkit-scrollbar {
+            display: none;
+        }
+        .category-slide {
+            flex: 0 0 33.3333%;
+            min-width: 33.3333%;
+            padding: 0 12px;
+        }
+        .categories-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #1e293b;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+        }
+        .categories-nav-btn:hover {
+            background: var(--primary);
+            color: #ffffff;
+        }
+        .categories-nav-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .categories-nav-btn.prev { left: 4px; }
+        .categories-nav-btn.next { right: 4px; }
         
         .contributors-section { background: white; padding: 60px 0; margin: 40px 0; border-radius: 30px; }
         .contributor-card { text-align: center; padding: 30px 20px; transition: 0.3s; border-radius: 20px; background: #fff; margin-bottom: 20px; border: 1px solid #eef2ff; }
@@ -129,8 +181,35 @@
         :root[data-theme="dark"] .resource-price,
         :root[data-theme="dark"] .contributor-stats { border-color: #334155; }
         :root[data-theme="dark"] .theme-toggle { background: #1f2937; border-color: #334155; color: #fbbf24; }
+        :root[data-theme="dark"] .categories-nav-btn {
+            background: #1f2937;
+            color: #e2e8f0;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        }
+        :root[data-theme="dark"] .categories-nav-btn:hover {
+            background: var(--primary);
+            color: #0f172a;
+        }
         
         @media (max-width: 768px) { .hero h1 { font-size: 32px; } .nav-links { display: none; } }
+        @media (max-width: 991.98px) {
+            .category-slide {
+                flex: 0 0 50%;
+                min-width: 50%;
+            }
+            .categories-carousel {
+                padding: 0 42px;
+            }
+        }
+        @media (max-width: 575.98px) {
+            .category-slide {
+                flex: 0 0 100%;
+                min-width: 100%;
+            }
+            .categories-carousel {
+                padding: 0 36px;
+            }
+        }
         
         .category-img-wrapper {
             width: 96px;
@@ -232,15 +311,28 @@
             <h2>Matières populaires</h2>
             <p class="text-muted">Découvrez les ressources par matière</p>
         </div>
-        <div class="row text-center">
+        <div class="categories-carousel">
+            <button type="button" class="categories-nav-btn prev" id="categoriesPrev" aria-label="Matières précédentes">
+                <i class="ti-angle-left"></i>
+            </button>
+            <button type="button" class="categories-nav-btn next" id="categoriesNext" aria-label="Matières suivantes">
+                <i class="ti-angle-right"></i>
+            </button>
+            <div class="categories-track text-center" id="categoriesTrack">
             <?php if(!empty($matieres)): ?>
-                <?php foreach ($matieres as $matiere): ?>
+                <?php
+                    $matieresSorted = $matieres;
+                    usort($matieresSorted, function ($a, $b) {
+                        return (int)($b['count'] ?? 0) <=> (int)($a['count'] ?? 0);
+                    });
+                ?>
+                <?php foreach ($matieresSorted as $matiere): ?>
                 <?php 
                     $matiereKey = $matiere['matiere'];
                     $matiereNom = htmlspecialchars($matiereKey, ENT_QUOTES, 'UTF-8');
                     $matiereImage = $matiere_icons[$matiereKey] ?? $matiere_icons['Autre'];
                 ?>
-                <div class="col-lg-3 col-md-6">
+                <div class="category-slide">
                     <div class="category-item" onclick="filterByMatiere(<?php echo htmlspecialchars(json_encode($matiereKey), ENT_QUOTES, 'UTF-8'); ?>)">
                         <div class="category-img-wrapper">
                             <img src="<?php echo $matiereImage; ?>" alt="<?php echo $matiereNom; ?>">
@@ -251,6 +343,7 @@
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -274,6 +367,10 @@
             $niveauClean = htmlspecialchars($res['niveau']);
             $auteurClean = htmlspecialchars($res['nom']);
             $accesClean = htmlspecialchars($res['acces']);
+            $resourceId = (int)$res['id_res'];
+            $isOwner = $currentUser && ((int)($res['id'] ?? 0) === (int)$currentUser['id']);
+            $isBought = !empty($purchasedResourceIds) && in_array($resourceId, $purchasedResourceIds, true);
+            $canDownloadPremium = ($accesClean !== 'Premium') || $isOwner || $isBought;
         ?>
         <div class="col-lg-4 col-md-6" data-matiere="<?php echo $matiereClean; ?>">
             <div class="resource-card">
@@ -283,7 +380,7 @@
                 </div>
                 <div class="resource-content">
                     <div class="stars">★★★★★</div>
-                    <h4 class="resource-title"><a href="index.php?action=resource&subaction=detail&id=<?php echo $res['id_res']; ?>"><?php echo $titreClean; ?></a></h4>
+                    <h4 class="resource-title"><a href="index.php?action=resource&subaction=detail&id=<?php echo $resourceId; ?>"><?php echo $titreClean; ?></a></h4>
                     <div class="resource-stats">
                         <span><i class="ti-book"></i> <?php echo $niveauClean; ?></span>
                         <span><i class="ti-folder"></i> <?php echo $matiereClean; ?></span>
@@ -291,11 +388,11 @@
                     </div>
                     <div class="resource-price"><?php echo $accesClean == 'Premium' ? "💰 " . number_format($res['prix'], 2) . " DT" : '📥 Gratuit'; ?></div>
                     <div class="resource-actions">
-                        <a href="index.php?action=resource&subaction=detail&id=<?php echo $res['id_res']; ?>" class="btn-primary-custom" style="padding:8px 20px;">📖 Voir</a>
-                        <?php if ($accesClean == 'Premium'): ?>
-                            <a href="index.php?action=resource&subaction=buy&id=<?php echo $res['id_res']; ?>" class="btn-outline-custom" style="padding:8px 20px;">🛒 Acheter</a>
+                        <a href="index.php?action=resource&subaction=detail&id=<?php echo $resourceId; ?>" class="btn-primary-custom" style="padding:8px 20px;">📖 Voir</a>
+                        <?php if ($accesClean == 'Premium' && !$canDownloadPremium): ?>
+                            <a href="index.php?action=resource&subaction=buy_checkout&id=<?php echo $resourceId; ?>" class="btn-outline-custom" style="padding:8px 20px;">🛒 Acheter</a>
                         <?php else: ?>
-                            <a href="index.php?action=resource&subaction=download&id=<?php echo $res['id_res']; ?>" class="btn-outline-custom" style="padding:8px 20px;"><i class="ti-download"></i> Télécharger</a>
+                            <a href="index.php?action=resource&subaction=download&id=<?php echo $resourceId; ?>" class="btn-outline-custom" style="padding:8px 20px;"><i class="ti-download"></i> Télécharger</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -402,23 +499,58 @@ if(searchInput) {
     });
 }
 
-var themeToggle = document.getElementById('themeToggle');
-var themeIcon = document.getElementById('themeIcon');
-function refreshThemeIcon() {
-    var current = document.documentElement.getAttribute('data-theme') || 'light';
-    if (!themeIcon) return;
-    themeIcon.className = current === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+var categoriesTrack = document.getElementById('categoriesTrack');
+var categoriesPrev = document.getElementById('categoriesPrev');
+var categoriesNext = document.getElementById('categoriesNext');
+
+function getCategoryStep() {
+    if (!categoriesTrack) return 0;
+    var firstSlide = categoriesTrack.querySelector('.category-slide');
+    if (firstSlide) {
+        var slideWidth = firstSlide.getBoundingClientRect().width;
+        if (slideWidth > 0) return slideWidth;
+    }
+    return Math.max(220, Math.floor(categoriesTrack.clientWidth * 0.8));
 }
-refreshThemeIcon();
-if (themeToggle) {
-    themeToggle.addEventListener('click', function () {
-        var current = document.documentElement.getAttribute('data-theme') || 'light';
-        var next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('studyhub-theme', next);
-        refreshThemeIcon();
+
+function updateCategoryNavState() {
+    if (!categoriesTrack || !categoriesPrev || !categoriesNext) return;
+    var maxScrollLeft = categoriesTrack.scrollWidth - categoriesTrack.clientWidth;
+    categoriesPrev.disabled = categoriesTrack.scrollLeft <= 0;
+    categoriesNext.disabled = categoriesTrack.scrollLeft >= maxScrollLeft - 1;
+}
+
+if (categoriesTrack && categoriesPrev && categoriesNext) {
+    function scrollCategories(direction) {
+        var step = getCategoryStep();
+        var delta = direction === 'next' ? step : -step;
+        try {
+            categoriesTrack.scrollBy({ left: delta, behavior: 'smooth' });
+        } catch (e) {
+            categoriesTrack.scrollLeft += delta;
+        }
+    }
+
+    categoriesPrev.addEventListener('click', function () {
+        scrollCategories('prev');
     });
+
+    categoriesNext.addEventListener('click', function () {
+        scrollCategories('next');
+    });
+
+    categoriesTrack.addEventListener('scroll', updateCategoryNavState);
+    window.addEventListener('resize', function () {
+        updateCategoryNavState();
+    });
+    window.addEventListener('load', function () {
+        updateCategoryNavState();
+    });
+    setTimeout(updateCategoryNavState, 150);
+    updateCategoryNavState();
 }
+
+// Theme toggle handled globally in js/scripts.js
 </script>
 
 <footer class="footer">

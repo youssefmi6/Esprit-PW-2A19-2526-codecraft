@@ -75,6 +75,8 @@
         <div class="alert alert-success">✅ Merci pour votre évaluation !</div>
     <?php elseif(isset($_GET['already'])): ?>
         <div class="alert alert-warning">⚠️ Vous avez déjà évalué cette ressource.</div>
+    <?php elseif(isset($_GET['payment']) && $_GET['payment'] === 'success'): ?>
+        <div class="alert alert-success">✅ Paiement réussi ! Vous pouvez maintenant télécharger cette ressource.</div>
     <?php endif; ?>
     
     <div class="row">
@@ -85,7 +87,7 @@
                 <div class="stars"><?php for($i=1;$i<=5;$i++) echo $i<=$full_stars ? '★' : ($half_star && $i==$full_stars+1 ? '½' : '☆'); ?> (<?= number_format($resource_rating,1) ?>/5 - <?= $totalVotes ?> vote<?= $totalVotes>1?'s':'' ?>)</div>
                 <div class="d-flex flex-wrap gap-4 my-3"><span><i class="ti-folder"></i> <?= escape($resource['type']) ?></span><span><i class="ti-layout"></i> <?= escape($resource['niveau']) ?></span><span><i class="ti-book"></i> <?= escape($resource['matiere']) ?></span><span><i class="ti-calendar"></i> Publiée le <?= date('d/m/Y', strtotime($resource['date_creation'])) ?></span></div>
                 <div class="mb-4"><h5>Description</h5><p><?= nl2br(escape($resource['description'])) ?></p></div>
-                <div class="mt-4"><?php if ($resource['acces'] == 'Premium'): ?><a href="index.php?action=resource&subaction=buy&id=<?= $resource['id_res'] ?>" class="btn-primary-custom" style="background:#f59e0b;">Acheter (<?= $resource['prix'] ?> DT)</a><?php else: ?><a href="index.php?action=resource&subaction=download&id=<?= $resource['id_res'] ?>" class="btn-primary-custom"><i class="ti-download"></i> Télécharger gratuitement</a><?php endif; ?><button class="btn-outline-custom ms-2" onclick="alert('Ressource signalée avec succès')"><i class="ti-flag-alt"></i> Signaler</button></div>
+                <div class="mt-4"><?php if ($resource['acces'] == 'Premium' && !$hasPurchaseAccess): ?><a href="index.php?action=resource&subaction=buy_checkout&id=<?= $resource['id_res'] ?>" class="btn-primary-custom" style="background:#f59e0b;">Acheter (<?= $resource['prix'] ?> DT)</a><?php else: ?><a href="index.php?action=resource&subaction=download&id=<?= $resource['id_res'] ?>" class="btn-primary-custom"><i class="ti-download"></i> Télécharger<?= $resource['acces'] == 'Premium' ? '' : ' gratuitement' ?></a><?php endif; ?><button class="btn-outline-custom ms-2" onclick="alert('Ressource signalée avec succès')"><i class="ti-flag-alt"></i> Signaler</button></div>
             </div>
             
             <div class="resource-detail-card"><h5>⭐ Évaluez cette ressource</h5>
@@ -155,7 +157,7 @@
         </div>
         
         <div class="col-lg-4">
-            <div class="resource-detail-card"><h5>💰 Informations</h5><hr><div class="text-center"><div class="display-6 fw-bold text-primary"><?= $resource['acces'] == 'Premium' ? $resource['prix'].' DT' : 'GRATUIT' ?></div><?php if ($resource['acces'] == 'Premium'): ?><a href="index.php?action=resource&subaction=buy&id=<?= $resource['id_res'] ?>" class="btn-primary-custom w-100 mt-3" style="background:#f59e0b;">Acheter</a><?php else: ?><a href="index.php?action=resource&subaction=download&id=<?= $resource['id_res'] ?>" class="btn-primary-custom w-100 mt-3">Télécharger</a><?php endif; ?></div></div>
+            <div class="resource-detail-card"><h5>💰 Informations</h5><hr><div class="text-center"><div class="display-6 fw-bold text-primary"><?= $resource['acces'] == 'Premium' ? $resource['prix'].' DT' : 'GRATUIT' ?></div><?php if ($resource['acces'] == 'Premium' && !$hasPurchaseAccess): ?><a href="index.php?action=resource&subaction=buy_checkout&id=<?= $resource['id_res'] ?>" class="btn-primary-custom w-100 mt-3" style="background:#f59e0b;">Acheter</a><?php else: ?><a href="index.php?action=resource&subaction=download&id=<?= $resource['id_res'] ?>" class="btn-primary-custom w-100 mt-3">Télécharger</a><?php endif; ?></div></div>
             <div class="resource-detail-card"><h5>📋 Détails techniques</h5><hr><p><i class="ti-file"></i> Format: PDF</p><p><i class="ti-book"></i> Pages: <?= $resource['pages'] ?> pages</p><p><i class="ti-download"></i> Téléchargements: <?= number_format($resource['downloads']) ?></p><p><i class="ti-star"></i> Note: <?= number_format($resource_rating,1) ?>/5</p></div>
         </div>
     </div>

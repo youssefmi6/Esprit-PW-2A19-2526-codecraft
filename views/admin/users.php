@@ -66,6 +66,32 @@
                 <td><a href="index.php?action=admin&subaction=view_user&id=<?= $user['id'] ?>" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a><a href="index.php?action=admin&subaction=edit_user&id=<?= $user['id'] ?>" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a><a href="index.php?action=admin&subaction=toggle_user_status&id=<?= $user['id'] ?>" class="<?= ((int)($user['is_active'] ?? 1) === 1) ? 'btn-delete' : 'btn-edit' ?>" title="<?= ((int)($user['is_active'] ?? 1) === 1) ? 'Désactiver + lien email' : 'Activer' ?>" onclick="return confirm('Changer le statut de ce compte ?')"><i class="bi <?= ((int)($user['is_active'] ?? 1) === 1) ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i></a><a href="index.php?action=admin&subaction=delete_user&id=<?= $user['id'] ?>" class="btn-delete" title="Supprimer" onclick="return confirm('Supprimer ?')"><i class="bi bi-trash3-fill"></i></a></td>
                 <?php endforeach; ?>
             </tbody></table></div>
+
+            <?php
+                $currentPage = isset($page) ? (int)$page : 1;
+                $pages = isset($totalPages) ? (int)$totalPages : 1;
+                $pages = max(1, $pages);
+                $currentPage = min(max(1, $currentPage), $pages);
+            ?>
+            <nav class="mt-3 d-flex justify-content-center">
+                <ul class="pagination">
+                    <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= max(1, $currentPage-1) ?>">Précédent</a>
+                    </li>
+                    <?php
+                        $start = max(1, $currentPage - 2);
+                        $end = min($pages, $currentPage + 2);
+                        for ($p = $start; $p <= $end; $p++):
+                    ?>
+                        <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
+                            <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= $p ?>"><?= $p ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= $currentPage >= $pages ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= min($pages, $currentPage+1) ?>">Suivant</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 
@@ -84,7 +110,7 @@
                 clearTimeout(timer);
                 timer = setTimeout(async () => {
                     const search = encodeURIComponent(input.value.trim());
-                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}`;
+                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}&page=1`;
                     try {
                         const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                         if (!response.ok) return;

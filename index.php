@@ -26,6 +26,16 @@ switch($action) {
             authLoginGet();
         }
         break;
+
+    case 'login_face':
+        require_once __DIR__ . '/controllers/authController.php';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            authLoginFacePost();
+        } else {
+            header('Location: index.php?action=login');
+            exit();
+        }
+        break;
     
     case 'register':
         require_once __DIR__ . '/controllers/authController.php';
@@ -85,11 +95,15 @@ switch($action) {
         } elseif ($subaction === 'download') {
             resourceDownload($id);
         } elseif ($subaction === 'buy') {
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                resourceBuyPost($id);
-            } else {
-                resourceBuyGet($id);
-            }
+            resourceBuyCreateCheckout($id);
+        } elseif ($subaction === 'buy_checkout') {
+            resourceBuyCreateCheckout($id);
+        } elseif ($subaction === 'buy_intent') {
+            resourceBuyCreateIntent($id);
+        } elseif ($subaction === 'buy_success') {
+            resourceBuySuccess($id);
+        } elseif ($subaction === 'buy_cancel') {
+            resourceBuyCancel($id);
         } elseif ($subaction === 'add_rating') {
             resourceAddRating();
         } elseif ($subaction === 'add_comment') {
@@ -118,6 +132,11 @@ switch($action) {
         } else {
             profileIndex();
         }
+        break;
+
+    case 'profile_generate_photo':
+        require_once __DIR__ . '/controllers/profileController.php';
+        profileGeneratePhoto();
         break;
     
     case 'admin':

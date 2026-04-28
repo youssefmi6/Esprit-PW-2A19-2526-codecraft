@@ -6,8 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('studyhub-theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
         root.setAttribute('data-theme', savedTheme);
-    } else if (!root.getAttribute('data-theme')) {
-        root.setAttribute('data-theme', 'light');
+    } else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
 
     const themeToggle = document.getElementById('themeToggle');

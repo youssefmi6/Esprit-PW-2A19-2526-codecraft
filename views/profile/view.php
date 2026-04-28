@@ -61,6 +61,28 @@
                 <div class="resource-item"><div class="d-flex justify-content-between flex-wrap"><div><strong><?= escape($res['titre']) ?></strong><br><small><?= $res['acces'] == 'Premium' ? "💰 {$res['prix']} DT" : '📥 Gratuit' ?> | 📄 <?= $res['pages'] ?> pages | 📥 <?= number_format($res['downloads']) ?> téléch.</small></div><div class="d-flex gap-2 mt-2"><a href="index.php?action=resource&subaction=edit&id=<?= $res['id_res'] ?>" class="btn-primary-custom" style="padding:6px 18px; background:#f59e0b;">Modifier</a><a href="index.php?action=resource&subaction=delete&id=<?= $res['id_res'] ?>" class="btn-primary-custom btn-danger-custom" style="padding:6px 18px;" onclick="return confirm('Supprimer ?')">Supprimer</a></div></div></div>
                 <?php endforeach; ?>
             </div>
+            <div class="profile-card text-start mt-4">
+                <h5>🛍️ Mes achats (<?= $totalPurchased ?>)</h5>
+                <?php if (empty($purchasedResources)): ?>
+                    <p class="text-muted mb-0">Vous n'avez pas encore acheté de ressource premium.</p>
+                <?php else: ?>
+                    <?php foreach ($purchasedResources as $purchase): ?>
+                        <div class="resource-item">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <div>
+                                    <strong><?= escape($purchase['titre']) ?></strong><br>
+                                    <small>💰 <?= number_format((float)$purchase['prix'], 2) ?> DT | Achat: <?= date('d/m/Y H:i', strtotime($purchase['purchased_at'])) ?></small>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="index.php?action=resource&subaction=download&id=<?= (int)$purchase['id_res'] ?>" class="btn-primary-custom" style="padding:6px 18px;">
+                                        <i class="ti-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
