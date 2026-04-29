@@ -31,8 +31,10 @@
         .page-title p { color:#5a8faa; margin:0; font-size:14px; }
         .content-card { background:white; border-radius:24px; padding:25px; box-shadow:0 4px 15px rgba(0,0,0,0.05); }
         .search-box { position:relative; margin-bottom:25px; }
+        .search-actions { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
         .search-box i { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:#1a8cff; }
         .search-box input { padding:12px 16px 12px 45px; border:2px solid #e0e7ff; border-radius:16px; width:100%; }
+        .sort-select { max-width:280px; border:2px solid #e0e7ff; border-radius:12px; }
         .btn-blue { background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); border:none; padding:10px 24px; border-radius:12px; font-weight:600; color:white; transition:all 0.3s; }
         .btn-blue:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(26,140,255,0.3); }
         .btn-edit { background:none; border:none; color:#1a8cff; font-size:18px; cursor:pointer; padding:5px; }
@@ -56,7 +58,16 @@
     <div class="main-content">
         <div class="top-bar"><div class="page-title"><h1>Gestion des utilisateurs</h1><p>Gérez tous les utilisateurs de la plateforme</p></div><button class="btn-blue" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="bi bi-person-plus-fill me-2"></i>Ajouter</button></div>
         <div class="content-card">
-            <div class="search-box"><i class="bi bi-search"></i><form method="GET" action="index.php?action=admin&subaction=users"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="users"><input type="text" name="search" id="usersSearchInput" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></form></div>
+            <div class="search-actions">
+                <label for="usersSortSelect" class="mb-0 fw-semibold text-muted">Tri :</label>
+                <select id="usersSortSelect" class="form-select sort-select">
+                    <option value="date_desc" <?= (($sort ?? 'date_desc') === 'date_desc') ? 'selected' : '' ?>>Date (plus récents)</option>
+                    <option value="date_asc" <?= (($sort ?? 'date_desc') === 'date_asc') ? 'selected' : '' ?>>Date (plus anciens)</option>
+                    <option value="alpha_asc" <?= (($sort ?? 'date_desc') === 'alpha_asc') ? 'selected' : '' ?>>Alphabetique (A-Z)</option>
+                    <option value="alpha_desc" <?= (($sort ?? 'date_desc') === 'alpha_desc') ? 'selected' : '' ?>>Alphabetique (Z-A)</option>
+                </select>
+            </div>
+            <div class="search-box"><i class="bi bi-search"></i><form method="GET" action="index.php?action=admin&subaction=users"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="users"><input type="hidden" name="sort" id="usersSortHiddenInput" value="<?= escape($sort ?? 'date_desc') ?>"><input type="text" name="search" id="usersSearchInput" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></form></div>
             <?php if(isset($_SESSION['admin_users_message'])): ?><div class="alert alert-success"><?= escape($_SESSION['admin_users_message']) ?></div><?php unset($_SESSION['admin_users_message']); endif; ?>
             <?php if(isset($success)): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
             <?php if(isset($error)): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
@@ -66,6 +77,32 @@
                 <td><a href="index.php?action=admin&subaction=view_user&id=<?= $user['id'] ?>" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a><a href="index.php?action=admin&subaction=edit_user&id=<?= $user['id'] ?>" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a><a href="index.php?action=admin&subaction=toggle_user_status&id=<?= $user['id'] ?>" class="<?= ((int)($user['is_active'] ?? 1) === 1) ? 'btn-delete' : 'btn-edit' ?>" title="<?= ((int)($user['is_active'] ?? 1) === 1) ? 'Désactiver + lien email' : 'Activer' ?>" onclick="return confirm('Changer le statut de ce compte ?')"><i class="bi <?= ((int)($user['is_active'] ?? 1) === 1) ? 'bi-toggle-off' : 'bi-toggle-on' ?>"></i></a><a href="index.php?action=admin&subaction=delete_user&id=<?= $user['id'] ?>" class="btn-delete" title="Supprimer" onclick="return confirm('Supprimer ?')"><i class="bi bi-trash3-fill"></i></a></td>
                 <?php endforeach; ?>
             </tbody></table></div>
+
+            <?php
+                $currentPage = isset($page) ? (int)$page : 1;
+                $pages = isset($totalPages) ? (int)$totalPages : 1;
+                $pages = max(1, $pages);
+                $currentPage = min(max(1, $currentPage), $pages);
+            ?>
+            <nav class="mt-3 d-flex justify-content-center">
+                <ul class="pagination">
+                    <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= max(1, $currentPage-1) ?>">Précédent</a>
+                    </li>
+                    <?php
+                        $start = max(1, $currentPage - 2);
+                        $end = min($pages, $currentPage + 2);
+                        for ($p = $start; $p <= $end; $p++):
+                    ?>
+                        <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
+                            <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= $p ?>"><?= $p ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= $currentPage >= $pages ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= min($pages, $currentPage+1) ?>">Suivant</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 
@@ -77,25 +114,42 @@
         (function () {
             const input = document.getElementById('usersSearchInput');
             const body = document.getElementById('usersTableBody');
-            if (!input || !body) return;
+            const sortSelect = document.getElementById('usersSortSelect');
+            const sortHiddenInput = document.getElementById('usersSortHiddenInput');
+            if (!input || !body || !sortSelect) return;
 
             let timer = null;
+            const runFetch = async () => {
+                const search = encodeURIComponent(input.value.trim());
+                const sort = encodeURIComponent(sortSelect.value);
+                const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}&sort=${sort}&page=1`;
+                try {
+                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    if (typeof data.rows === 'string') {
+                        body.innerHTML = data.rows;
+                    }
+                } catch (e) {
+                    console.error('Recherche dynamique users error:', e);
+                }
+            };
+
             input.addEventListener('input', function () {
                 clearTimeout(timer);
-                timer = setTimeout(async () => {
-                    const search = encodeURIComponent(input.value.trim());
-                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}`;
-                    try {
-                        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                        if (!response.ok) return;
-                        const data = await response.json();
-                        if (typeof data.rows === 'string') {
-                            body.innerHTML = data.rows;
-                        }
-                    } catch (e) {
-                        console.error('Recherche dynamique users error:', e);
-                    }
-                }, 250);
+                timer = setTimeout(runFetch, 250);
+            });
+
+            sortSelect.addEventListener('change', function () {
+                if (sortHiddenInput) {
+                    sortHiddenInput.value = sortSelect.value;
+                }
+                const params = new URLSearchParams(window.location.search);
+                params.set('action', 'admin');
+                params.set('subaction', 'users');
+                params.set('sort', sortSelect.value);
+                params.set('page', '1');
+                window.location.search = params.toString();
             });
         })();
     </script>

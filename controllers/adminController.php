@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/sql_queries.php';
+
 // controllers/adminController.php
 function adminLoginGet() {
     require_once __DIR__ . '/../views/admin/login.php';
@@ -55,16 +57,25 @@ function adminDashboard() {
     require_once __DIR__ . '/../models/resourceModel.php';
     require_once __DIR__ . '/../models/commentModel.php';
     
+    $userStats = getUserDashboardStats($pdo);
+    $resourceStats = getResourceStats($pdo);
     $stats = [];
-    $stats['total_users'] = count(getAllUsers($pdo));
-    $stats['total_resources'] = count(getAllResources($pdo));
-    $stats['total_pages'] = 0;
-    $stats['total_downloads'] = 0;
+    $stats['total_users'] = (int)($userStats['total_users'] ?? 0);
+    $stats['total_admins'] = (int)($userStats['total_admins'] ?? 0);
+    $stats['total_regular_users'] = (int)($userStats['total_regular_users'] ?? 0);
+    $stats['total_active_users'] = (int)($userStats['total_active_users'] ?? 0);
+    $stats['total_inactive_users'] = (int)($userStats['total_inactive_users'] ?? 0);
+    $stats['total_resources'] = (int)($resourceStats['total_resources'] ?? 0);
+    $stats['total_pages'] = (int)($resourceStats['total_pages'] ?? 0);
+    $stats['total_downloads'] = (int)($resourceStats['total_downloads'] ?? 0);
+    $stats['total_matieres'] = (int)($resourceStats['total_matieres'] ?? 0);
+    $stats['avg_resource_rating'] = round((float)($resourceStats['avg_rating'] ?? 0), 2);
     $stats['total_comments'] = count(getAllComments($pdo));
     
     $recentUsers = getRecentUsers($pdo, 5);
     $recentResources = getRecentResources($pdo, 5);
     $topResources = getTopResources($pdo, 5);
+    $resourcesByMatiere = getResourcesByMatiere($pdo, 8);
     
     require_once __DIR__ . '/../views/admin/dashboard.php';
 }
@@ -78,15 +89,28 @@ function adminUsers() {
     global $pdo;
     
     $search = $_GET['search'] ?? '';
+    $sort = $_GET['sort'] ?? 'date_desc';
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = 3;
+    $offset = ($page - 1) * $perPage;
     
     require_once __DIR__ . '/../models/userModel.php';
-    $users = getAllUsers($pdo, $search);
+    $total = countUsers($pdo, $search);
+    $totalPages = max(1, (int)ceil($total / $perPage));
+    if ($page > $totalPages) {
+        $page = $totalPages;
+        $offset = ($page - 1) * $perPage;
+    }
+    $users = getAllUsers($pdo, $search, $perPage, $offset, $sort);
 
     if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode([
             'rows' => renderAdminUsersRows($users),
-            'count' => count($users),
+            'count' => $total,
+            'page' => $page,
+            'total_pages' => $totalPages,
+            'sort' => $sort,
         ]);
         exit();
     }
@@ -105,9 +129,10 @@ function adminResources() {
     $search = $_GET['search'] ?? '';
     $type_filter = $_GET['type'] ?? '';
     $matiere_filter = $_GET['matiere'] ?? '';
+    $sort = $_GET['sort'] ?? 'date_desc';
     
     require_once __DIR__ . '/../models/resourceModel.php';
-    $resources = getAllResources($pdo, $search, $type_filter, $matiere_filter);
+    $resources = getAllResources($pdo, $search, $type_filter, $matiere_filter, $sort);
     $types = getAllTypes($pdo);
     $matieres = getAllMatieres($pdo);
 
@@ -116,6 +141,7 @@ function adminResources() {
         echo json_encode([
             'rows' => renderAdminResourcesRows($resources),
             'count' => count($resources),
+            'sort' => $sort,
         ]);
         exit();
     }

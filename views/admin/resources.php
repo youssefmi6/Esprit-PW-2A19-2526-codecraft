@@ -57,10 +57,20 @@
     <div class="main-content">
         <div class="top-bar"><div class="page-title"><h1>Gestion des ressources</h1><p>Gérez toutes les ressources pédagogiques</p></div><button class="btn-blue" data-bs-toggle="modal" data-bs-target="#addResourceModal"><i class="bi bi-plus-circle-fill me-2"></i>Ajouter</button></div>
         <div class="content-card">
-            <form method="GET" action="index.php?action=admin&subaction=resources"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="resources"><div class="row g-2 mb-3"><div class="col-md-4"><div class="search-box"><i class="bi bi-search"></i><input type="text" id="resourcesSearchInput" name="search" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></div></div>
+            <form method="GET" action="index.php?action=admin&subaction=resources"><input type="hidden" name="action" value="admin"><input type="hidden" name="subaction" value="resources"><div class="row g-2 mb-3"><div class="col-md-3"><div class="search-box"><i class="bi bi-search"></i><input type="text" id="resourcesSearchInput" name="search" class="form-control" placeholder="Rechercher..." value="<?= escape($search) ?>"></div></div>
             <div class="col-md-3"><select id="resourcesTypeFilter" name="type" class="form-select" onchange="this.form.submit()"><option value="">Tous les types</option><?php foreach($types as $t): ?><option value="<?= escape($t['type']) ?>" <?= $type_filter == $t['type'] ? 'selected' : '' ?>><?= escape($t['type']) ?></option><?php endforeach; ?></select></div>
             <div class="col-md-3"><select id="resourcesMatiereFilter" name="matiere" class="form-select" onchange="this.form.submit()"><option value="">Toutes les matières</option><?php foreach($matieres as $m): ?><option value="<?= escape($m['matiere']) ?>" <?= $matiere_filter == $m['matiere'] ? 'selected' : '' ?>><?= escape($m['matiere']) ?></option><?php endforeach; ?></select></div>
-            <div class="col-md-2"><a href="index.php?action=admin&subaction=resources" class="btn btn-secondary w-100">Réinitialiser</a></div></div></form>
+            <div class="col-md-2">
+                <select id="resourcesSortFilter" name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="date_desc" <?= (($sort ?? 'date_desc') === 'date_desc') ? 'selected' : '' ?>>Plus récents</option>
+                    <option value="date_asc" <?= (($sort ?? 'date_desc') === 'date_asc') ? 'selected' : '' ?>>Plus anciens</option>
+                    <option value="alpha_asc" <?= (($sort ?? 'date_desc') === 'alpha_asc') ? 'selected' : '' ?>>Titre A-Z</option>
+                    <option value="alpha_desc" <?= (($sort ?? 'date_desc') === 'alpha_desc') ? 'selected' : '' ?>>Titre Z-A</option>
+                    <option value="downloads_desc" <?= (($sort ?? 'date_desc') === 'downloads_desc') ? 'selected' : '' ?>>Téléchargements</option>
+                    <option value="rating_desc" <?= (($sort ?? 'date_desc') === 'rating_desc') ? 'selected' : '' ?>>Note</option>
+                </select>
+            </div>
+            <div class="col-md-1"><a href="index.php?action=admin&subaction=resources" class="btn btn-secondary w-100">RAZ</a></div></div></form>
             
             <?php if(isset($success)): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
             <?php if(isset($error)): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
@@ -90,8 +100,9 @@
             const searchInput = document.getElementById('resourcesSearchInput');
             const typeFilter = document.getElementById('resourcesTypeFilter');
             const matiereFilter = document.getElementById('resourcesMatiereFilter');
+            const sortFilter = document.getElementById('resourcesSortFilter');
             const tableBody = document.getElementById('resourcesTableBody');
-            if (!searchInput || !typeFilter || !matiereFilter || !tableBody) return;
+            if (!searchInput || !typeFilter || !matiereFilter || !sortFilter || !tableBody) return;
 
             let timer = null;
             const runSearch = async () => {
@@ -101,7 +112,8 @@
                     ajax: '1',
                     search: searchInput.value.trim(),
                     type: typeFilter.value,
-                    matiere: matiereFilter.value
+                    matiere: matiereFilter.value,
+                    sort: sortFilter.value
                 });
 
                 try {
@@ -127,6 +139,10 @@
                 runSearch();
             });
             matiereFilter.addEventListener('change', function (e) {
+                e.preventDefault();
+                runSearch();
+            });
+            sortFilter.addEventListener('change', function (e) {
                 e.preventDefault();
                 runSearch();
             });

@@ -46,6 +46,9 @@
                 <hr><p><i class="ti-location-pin"></i> <?= escape($user['universite'] ?: 'Non renseignée') ?></p>
                 <p><i class="ti-email"></i> <?= escape($user['email']) ?></p>
                 <a href="index.php?action=profile&subaction=edit" class="btn-primary-custom w-100 mt-3">✏️ Modifier le profil</a>
+                <a href="index.php?action=chat" class="btn-primary-custom w-100 mt-2" style="background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%);">
+                    💬 Espace conversation
+                </a>
             </div>
         </div>
         <div class="col-md-8">
@@ -55,11 +58,61 @@
                 <div class="col-6 col-md-3 mb-2"><div class="stat-card" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="ti-star" style="font-size:28px;"></i><h3><?= number_format($avgUserRating, 1) ?></h3><small>Note moyenne</small></div></div>
                 <div class="col-6 col-md-3 mb-2"><div class="stat-card" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="ti-wallet" style="font-size:28px;"></i><h3><?= $totalPremium ?></h3><small>Premium</small></div></div>
             </div>
+            <div class="profile-card text-start mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">🧠 Notes de quiz</h5>
+                    <span class="badge bg-success"><?= (int)$quizPassedCount ?> certificats</span>
+                </div>
+                <?php if (empty($quizAttempts)): ?>
+                    <p class="text-muted mb-0">Aucun quiz passé pour le moment.</p>
+                <?php else: ?>
+                    <?php foreach ($quizAttempts as $attempt): ?>
+                        <div class="resource-item">
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <div>
+                                    <strong><?= escape($attempt['resource_title'] ?? 'Ressource') ?></strong><br>
+                                    <small>Note: <?= number_format((float)($attempt['score'] ?? 0), 2) ?>/10 - <?= date('d/m/Y H:i', strtotime($attempt['created_at'])) ?></small>
+                                </div>
+                                <div class="text-end">
+                                    <?php if ((int)($attempt['passed'] ?? 0) === 1): ?>
+                                        <span class="badge bg-success">Réussi</span><br>
+                                        <a href="index.php?action=quiz&subaction=certificate&id=<?= (int)$attempt['resource_id'] ?>&attempt=<?= (int)$attempt['id'] ?>" class="btn-primary-custom mt-1" style="padding:4px 12px;">Certificat</a>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">Échoué</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
             <div class="profile-card text-start">
                 <div class="d-flex justify-content-between mb-3"><h5>📚 Mes ressources (<?= $totalResources ?>)</h5><a href="index.php?action=resource&subaction=upload" class="btn-primary-custom" style="padding:6px 18px;">+ Nouvelle</a></div>
                 <?php foreach ($userResources as $res): ?>
                 <div class="resource-item"><div class="d-flex justify-content-between flex-wrap"><div><strong><?= escape($res['titre']) ?></strong><br><small><?= $res['acces'] == 'Premium' ? "💰 {$res['prix']} DT" : '📥 Gratuit' ?> | 📄 <?= $res['pages'] ?> pages | 📥 <?= number_format($res['downloads']) ?> téléch.</small></div><div class="d-flex gap-2 mt-2"><a href="index.php?action=resource&subaction=edit&id=<?= $res['id_res'] ?>" class="btn-primary-custom" style="padding:6px 18px; background:#f59e0b;">Modifier</a><a href="index.php?action=resource&subaction=delete&id=<?= $res['id_res'] ?>" class="btn-primary-custom btn-danger-custom" style="padding:6px 18px;" onclick="return confirm('Supprimer ?')">Supprimer</a></div></div></div>
                 <?php endforeach; ?>
+            </div>
+            <div class="profile-card text-start mt-4">
+                <h5>🛍️ Mes achats (<?= $totalPurchased ?>)</h5>
+                <?php if (empty($purchasedResources)): ?>
+                    <p class="text-muted mb-0">Vous n'avez pas encore acheté de ressource premium.</p>
+                <?php else: ?>
+                    <?php foreach ($purchasedResources as $purchase): ?>
+                        <div class="resource-item">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <div>
+                                    <strong><?= escape($purchase['titre']) ?></strong><br>
+                                    <small>💰 <?= number_format((float)$purchase['prix'], 2) ?> DT | Achat: <?= date('d/m/Y H:i', strtotime($purchase['purchased_at'])) ?></small>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="index.php?action=resource&subaction=download&id=<?= (int)$purchase['id_res'] ?>" class="btn-primary-custom" style="padding:6px 18px;">
+                                        <i class="ti-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>

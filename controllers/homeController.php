@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/sql_queries.php';
+
 // controllers/homeController.php
 function homeIndex() {
     global $pdo;
@@ -8,8 +10,9 @@ function homeIndex() {
     
     $search = trim($_GET['search'] ?? '');
     $matiere = trim($_GET['matiere'] ?? '');
+    $sort = trim($_GET['sort'] ?? 'date_desc');
 
-    $resources = getAllResources($pdo, $search, '', $matiere);
+    $resources = getAllResources($pdo, $search, '', $matiere, $sort);
     $matieres = getResourcesByMatiere($pdo);
     
     // MODIFICATION ICI : Exclure les administrateurs (role = 0)
@@ -23,6 +26,10 @@ function homeIndex() {
     $contributors = $stmt->fetchAll();
     
     $currentUser = getCurrentUser($pdo);
+    $purchasedResourceIds = [];
+    if ($currentUser) {
+        $purchasedResourceIds = getPurchasedResourceIdsByUser($pdo, (int)$currentUser['id']);
+    }
     
     require_once __DIR__ . '/../includes/matiere_photos.php';
     $matiere_icons = get_matiere_default_photos_map();
@@ -30,7 +37,7 @@ function homeIndex() {
     if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode([
-            'html' => renderHomeResourceCards($resources, $matiere_icons),
+            'html' => renderHomeResourceCards($resources, $matiere_icons, $currentUser, $purchasedResourceIds),
             'count' => count($resources),
         ]);
         exit();
@@ -39,7 +46,7 @@ function homeIndex() {
     require_once __DIR__ . '/../views/home/index.php';
 }
 
-function renderHomeResourceCards($resources, $matiere_icons) {
+function renderHomeResourceCards($resources, $matiere_icons, $currentUser = null, $purchasedResourceIds = []) {
     if (empty($resources)) {
         return '<div class="col-12"><div class="alert alert-info text-center"><i class="ti-info-alt"></i> Aucune ressource trouvée.</div></div>';
     }
@@ -78,8 +85,15 @@ function renderHomeResourceCards($resources, $matiere_icons) {
             . '<div class="resource-actions">'
             . '<a href="index.php?action=resource&subaction=detail&id=' . $resourceId . '" class="btn-primary-custom" style="padding:8px 20px;">📖 Voir</a>';
 
+        $canDownloadPremium = false;
         if ($accesClean === 'Premium') {
-            $html .= '<a href="index.php?action=resource&subaction=buy&id=' . $resourceId . '" class="btn-outline-custom" style="padding:8px 20px;">🛒 Acheter</a>';
+            $isOwner = $currentUser && ((int)($res['id'] ?? 0) === (int)$currentUser['id']);
+            $isBought = in_array($resourceId, $purchasedResourceIds, true);
+            $canDownloadPremium = $isOwner || $isBought;
+        }
+
+        if ($accesClean === 'Premium' && !$canDownloadPremium) {
+            $html .= '<a href="index.php?action=resource&subaction=buy_checkout&id=' . $resourceId . '" class="btn-outline-custom" style="padding:8px 20px;">🛒 Acheter</a>';
         } else {
             $html .= '<a href="index.php?action=resource&subaction=download&id=' . $resourceId . '" class="btn-outline-custom" style="padding:8px 20px;"><i class="ti-download"></i> Télécharger</a>';
         }

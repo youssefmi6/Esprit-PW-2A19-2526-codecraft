@@ -1,31 +1,28 @@
 <?php
-// models/ratingModel.php - Modèle pour les notes / votes sur les ressources
-
+/**
+ * DTO: Rating (aucun SQL ici).
+ * Les requêtes PDO sont centralisées dans `controllers/sql_queries.php`.
+ */
 class RatingModel
 {
-    public static function hasUserRated(PDO $pdo, int $resourceId, int $userId): bool
+    private int $id_res = 0;
+    private int $id_user = 0;
+    private int $rating = 0;
+
+    public function __construct(array $data = [])
     {
-        $stmt = $pdo->prepare("SELECT COUNT(*) as n FROM ratings WHERE id_res = ? AND id_user = ?");
-        $stmt->execute([$resourceId, $userId]);
-        $row = $stmt->fetch();
-        return (int) ($row['n'] ?? 0) > 0;
+        $this->id_res = (int)($data['id_res'] ?? 0);
+        $this->id_user = (int)($data['id_user'] ?? 0);
+        $this->rating = (int)($data['rating'] ?? 0);
     }
 
-    public static function getTotalVotes(PDO $pdo, int $resourceId): int
-    {
-        $stmt = $pdo->prepare("SELECT COUNT(*) as n FROM ratings WHERE id_res = ?");
-        $stmt->execute([$resourceId]);
-        $row = $stmt->fetch();
-        return (int) ($row['n'] ?? 0);
-    }
+    public function getResourceId(): int { return $this->id_res; }
+    public function setResourceId(int $v): void { $this->id_res = $v; }
 
-    public static function addRating(PDO $pdo, int $resourceId, int $userId, int $rating): bool
-    {
-        $stmt = $pdo->prepare("INSERT INTO ratings (id_res, id_user, rating) VALUES (?, ?, ?)");
-        return $stmt->execute([$resourceId, $userId, $rating]);
-    }
+    public function getUserId(): int { return $this->id_user; }
+    public function setUserId(int $v): void { $this->id_user = $v; }
+
+    public function getRating(): int { return $this->rating; }
+    public function setRating(int $v): void { $this->rating = $v; }
 }
 
-function hasUserRated($pdo, $resourceId, $userId) { return RatingModel::hasUserRated($pdo, (int) $resourceId, (int) $userId); }
-function getTotalVotes($pdo, $resourceId) { return RatingModel::getTotalVotes($pdo, (int) $resourceId); }
-function addRating($pdo, $resourceId, $userId, $rating) { return RatingModel::addRating($pdo, (int) $resourceId, (int) $userId, (int) $rating); }
