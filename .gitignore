@@ -1,1 +1,3 @@
 /config/stripe.local.php
+/config/notifications.local.php
+/config/email.local.php

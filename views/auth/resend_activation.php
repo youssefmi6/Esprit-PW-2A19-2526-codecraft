@@ -40,11 +40,8 @@
                 <input type="email" name="email" class="form-control-custom" placeholder="exemple@email.com" value="<?= !empty($emailForActivation) ? escape($emailForActivation) : '' ?>" <?= !empty($canActivate) ? 'readonly' : '' ?> required>
             </div>
             <?php if (!empty($canActivate) && !empty($emailForActivation)): ?>
-                <button type="submit" name="confirm_activate" value="1" class="btn-main">
-                    <i class="bi bi-check-circle-fill me-1"></i>Activer maintenant
-                </button>
-                <button type="submit" name="send_activation_link" value="1" class="btn btn-outline-primary w-100 mt-2" style="border-radius:14px; font-weight:600;">
-                    <i class="bi bi-send-fill me-1"></i>Envoyer aussi un lien par email
+                <button type="submit" name="send_activation_link" value="1" class="btn-main">
+                    <i class="bi bi-send-fill me-1"></i>Envoyer le lien d'activation par email
                 </button>
             <?php else: ?>
                 <button type="submit" class="btn-main">

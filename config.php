@@ -20,6 +20,17 @@ if (file_exists($stripeLocalConfigPath)) {
     require_once $stripeLocalConfigPath;
 }
 
+$studyhubNotificationsLocal = __DIR__ . '/config/notifications.local.php';
+if (file_exists($studyhubNotificationsLocal)) {
+    require_once $studyhubNotificationsLocal;
+}
+$studyhubEmailLocal = __DIR__ . '/config/email.local.php';
+if (file_exists($studyhubEmailLocal)) {
+    require_once $studyhubEmailLocal;
+}
+
+require_once __DIR__ . '/includes/outbound_notifications.php';
+
 // Fonctions d'authentification
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
@@ -92,9 +103,24 @@ function sendActivationEmail($email, $fullName, $token) {
     $message .= $activationUrl . "\n\n";
     $message .= "Si vous n'etes pas a l'origine de cette demande, ignorez ce message.\n";
 
-    $headers = "From: no-reply@studyhub.local\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $html = '<p>Bonjour ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . ',</p>';
+    $html .= '<p>Votre compte est inactif. Cliquez sur le bouton ci-dessous pour l\'activer.</p>';
+    $html .= '<p><a href="' . htmlspecialchars($activationUrl, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:12px 20px;background:#1a8cff;color:#fff;text-decoration:none;border-radius:10px;">Activer mon compte</a></p>';
+    $html .= '<p style="font-size:12px;color:#666;">Ou copiez ce lien :<br>' . htmlspecialchars($activationUrl, ENT_QUOTES, 'UTF-8') . '</p>';
 
-    return @mail($email, $subject, $message, $headers);
+    $result = studyhubSendEmailTransactional($email, $subject, $message, $html);
+    if (empty($result['ok'])) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['last_activation_mail_error'] = $result['error'] ?? 'Erreur envoi email';
+        }
+        if (!empty($result['error'])) {
+            error_log('StudyHub sendActivationEmail: ' . $result['error']);
+        }
+        return false;
+    }
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        unset($_SESSION['last_activation_mail_error']);
+    }
+    return true;
 }
 ?>

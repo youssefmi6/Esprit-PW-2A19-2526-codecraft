@@ -329,9 +329,32 @@
             50% { transform: translateY(-4px) scale(1.04); opacity: 1; }
         }
         
-        .search-wrapper { background: white; border-radius: 60px; padding: 5px; display: flex; max-width: 500px; }
-        .search-wrapper input { flex: 1; border: none; padding: 15px 25px; border-radius: 60px; outline: none; }
-        .search-wrapper button { background: var(--primary); border: none; padding: 12px 30px; border-radius: 60px; color: white; font-weight: 600; }
+        .search-wrapper { background: white; border-radius: 60px; padding: 5px; display: flex; max-width: 420px; gap: 8px; align-items: center; }
+        .search-wrapper input { flex: 1; border: none; padding: 12px 18px; border-radius: 60px; outline: none; font-size: 14px; }
+        .search-wrapper button { background: var(--primary); border: none; padding: 10px 22px; border-radius: 60px; color: white; font-weight: 600; transition: all 0.3s ease; cursor: pointer; font-size: 13px; }
+        .search-wrapper button:hover { opacity: 0.9; }
+        
+        /* Styles pour la recherche vocale */
+        .voice-search-container { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #voiceSearchBtn { background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none; padding: 10px 28px; border-radius: 60px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+        #voiceSearchBtn:hover { opacity: 0.9; transform: scale(1.02); }
+        #voiceSearchBtn:active { transform: scale(0.98); }
+        #voiceSearchBtn.listening { background: linear-gradient(135deg, #ef4444, #dc2626); animation: pulse 1.2s ease-in-out infinite; }
+        #voiceSearchBtn.stopped { background: linear-gradient(135deg, #10b981, #059669); }
+        #voiceSearchBtn.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        
+        #voiceStatus { font-size: 11px; min-height: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #16a34a; font-weight: 500; }
+        #voiceTranscript { width: 100%; max-width: 350px; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-style: italic; color: #1e293b; background-color: #f8fafc; display: none; }
+        #voiceTranscript:focus { outline: none; border-color: #2563eb; background-color: #eff6ff; }
+        
+        :root[data-theme="dark"] #voiceTranscript { background-color: #1f2937; color: #f1f5f9; border-color: #374151; }
+        :root[data-theme="dark"] #voiceTranscript:focus { background-color: #111827; border-color: #60a5fa; }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+        }
+        
         .resources-toolbar { display:flex; justify-content:flex-end; gap:10px; margin-bottom:18px; }
         .resources-toolbar .form-select { max-width: 260px; border-radius: 12px; border: 2px solid #dbeafe; }
         
@@ -632,6 +655,11 @@
                 <div class="search-wrapper mt-4">
                     <input type="text" id="searchInput" placeholder="Rechercher une ressource...">
                     <button onclick="searchResources()"><i class="ti-search"></i> Rechercher</button>
+                </div>
+                <div class="voice-search-container">
+                    <button type="button" id="voiceSearchBtn" title="Cliquez pour chercher par voix"><i class="fa-solid fa-microphone"></i> Chercher par voix</button>
+                    <div id="voiceStatus"></div>
+                    <input type="text" id="voiceTranscript" placeholder="Le texte reconnu apparaîtra ici..." readonly>
                 </div>
             </div>
             <div class="col-lg-6 text-center mt-4 mt-lg-0 hero-visual-animated">
@@ -1000,5 +1028,6 @@ if (studyhubBook) {
 
 <script src="js/validation.js"></script>
 <script src="js/scripts.js"></script>
+<script src="js/voice-search.js"></script>
 </body>
 </html>

@@ -22,17 +22,25 @@ $step = isset($step) ? (int)$step : 1;
         .btn-main { width:100%; padding:12px; border:none; border-radius:14px; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); color:white; font-weight:600; }
         .back-link { text-align:center; margin-top:16px; }
         .back-link a { color:#1a8cff; text-decoration:none; font-size:14px; font-weight:600; }
+        .step-pill { text-align:center; font-size:12px; color:#6c757d; margin-bottom:12px; }
     </style>
 </head>
 <body>
     <div class="reset-container">
         <h2 class="title">Réinitialiser le mot de passe</h2>
+        <p class="step-pill">Étape <?= (int)$step ?> / 3</p>
         <p class="subtitle">
-            <?= $step === 1 ? "Entrez votre numéro de téléphone pour recevoir une notification." : "Choisissez votre nouveau mot de passe." ?>
+            <?php if ($step === 1): ?>
+                Entrez votre numéro : un SMS avec un code à 4 chiffres vous sera envoyé (Twilio).
+            <?php elseif ($step === 2): ?>
+                Saisissez le code reçu sur votre téléphone.
+            <?php else: ?>
+                Choisissez votre nouveau mot de passe.
+            <?php endif; ?>
         </p>
 
         <?php if (!empty($error)): ?>
-            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?></div>
+            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= htmlspecialchars((string)$error, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
         <?php if (!empty($message)): ?>
             <div class="alert alert-success"><i class="bi bi-check-circle-fill me-2"></i><?= $message ?></div>
@@ -46,7 +54,21 @@ $step = isset($step) ? (int)$step : 1;
                     <input type="text" name="tel" class="form-control-custom" placeholder="Ex: 22123456 ou +21622123456" required>
                 </div>
                 <button type="submit" name="send_notification" class="btn-main">
-                    <i class="bi bi-send-fill me-1"></i>Envoyer la notification
+                    <i class="bi bi-send-fill me-1"></i>Envoyer le code par SMS
+                </button>
+            </form>
+        <?php elseif ($step === 2): ?>
+            <form method="POST">
+                <label class="form-label">Code à 4 chiffres</label>
+                <div class="input-group-custom">
+                    <i class="bi bi-123"></i>
+                    <input type="text" name="otp_code" class="form-control-custom" placeholder="0000" maxlength="8" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" required>
+                </div>
+                <button type="submit" name="verify_otp" class="btn-main">
+                    <i class="bi bi-shield-check me-1"></i>Vérifier le code
+                </button>
+                <button type="submit" name="resend_otp" class="btn btn-outline-secondary w-100 mt-2" style="border-radius:14px; font-weight:600;">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Renvoyer le SMS
                 </button>
             </form>
         <?php else: ?>
@@ -68,7 +90,9 @@ $step = isset($step) ? (int)$step : 1;
         <?php endif; ?>
 
         <div class="back-link">
-            <a href="index.php?action=login"><i class="bi bi-arrow-left me-1"></i>Retour à la connexion</a>
+            <a href="index.php?action=forgot_password&cancel=1">Annuler la réinitialisation</a>
+            <span class="text-muted"> · </span>
+            <a href="index.php?action=login"><i class="bi bi-arrow-left me-1"></i>Connexion</a>
         </div>
     </div>
 </body>
