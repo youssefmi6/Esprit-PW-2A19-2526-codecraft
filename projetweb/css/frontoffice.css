@@ -1,0 +1,129 @@
+/* ===== FRONTOFFICE STYLES ===== */
+
+.section-form {
+    background: white;
+    padding: 3rem 2rem;
+    margin: 2rem auto;
+    max-width: 1200px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.section-form h2 {
+    text-align: center;
+    color: var(--secondary);
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+.form-reclamation {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.section-reclamations {
+    padding: 3rem 2rem;
+}
+
+.section-reclamations h2 {
+    text-align: center;
+    color: var(--secondary);
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+/* Détails Modal pour Frontend */
+.detail-reclamation {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+}
+
+.detail-reclamation h3 {
+    color: var(--secondary);
+    margin-bottom: 1rem;
+}
+
+.detail-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-item label {
+    font-weight: 600;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.detail-item p {
+    color: var(--text);
+    margin: 0;
+}
+
+/* Réponses */
+.reponses-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--primary);
+}
+
+.reponses-section h4 {
+    color: var(--secondary);
+    margin-bottom: 1rem;
+}
+
+.reponse-item {
+    background: var(--light);
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--secondary);
+}
+
+.reponse-date {
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 0.5rem;
+}
+
+.reponse-text {
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.form-reponse {
+    margin-top: 2rem;
+}
+
+.form-reponse textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-reponse button {
+    margin-top: 1rem;
+}
+
+/* Section vide */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #999;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
