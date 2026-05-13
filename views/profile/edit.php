@@ -29,7 +29,18 @@
     <div class="row justify-content-center"><div class="col-md-8"><div class="form-card">
         <form method="POST" enctype="multipart/form-data" id="profileForm" novalidate>
             <div class="text-center"><img src="<?= !empty($user['photo']) ? $user['photo'] : 'https://randomuser.me/api/portraits/men/32.jpg' ?>" class="profile-avatar-preview" id="avatarPreview" onclick="document.getElementById('photoInput').click()"><div><label class="btn-outline-custom" style="cursor:pointer; padding:8px 20px;"><i class="ti-camera"></i> Changer la photo<input type="file" id="photoInput" name="photo" accept="image/*" style="display:none;" onchange="previewImage(this)"></label></div></div>
-            <div class="row"><div class="col-md-6 mb-3"><label>Nom</label><input type="text" name="nom" class="form-control" value="<?= escape($user['nom']) ?>"></div><div class="col-md-6 mb-3"><label>Prénom</label><input type="text" name="prenom" class="form-control" value="<?= escape($user['prenom']) ?>"></div></div>
+            <input type="hidden" name="generated_photo_url" id="generatedPhotoUrl" value="">
+            <div class="mt-3">
+                <label class="form-label fw-bold">Prompt (pour générer une photo)</label>
+                <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" class="form-control" id="profilePhotoPrompt" placeholder="Ex: Portrait photo réaliste, fond bleu, style professionnel">
+                    <button type="button" class="btn-outline-custom" id="generateProfilePhotoBtn" style="padding:10px 18px; border-radius:12px;">
+                        🖼️ Générer photo
+                    </button>
+                </div>
+                <div class="small text-muted mt-2" id="profilePhotoGenStatus"></div>
+            </div>
+            <div class="row"><div class="col-md-6 mb-3"><label>Nom</label><input type="text" name="nom" class="form-control" value="<?= escape($user['nom']) ?>" required></div><div class="col-md-6 mb-3"><label>Prénom</label><input type="text" name="prenom" class="form-control" value="<?= escape($user['prenom']) ?>" required></div></div>
             <div class="mb-3"><label>Université</label><input type="text" name="universite" class="form-control" value="<?= escape($user['universite']) ?>"></div>
             <div class="mb-3"><label>Filière</label><input type="text" name="filiere" class="form-control" value="<?= escape($user['filiere']) ?>"></div>
             <div class="mb-3"><label>Email</label><input type="email" name="email" class="form-control" value="<?= escape($user['email']) ?>"></div>
@@ -44,6 +55,8 @@
 <script>
 function previewImage(input) {
     if (input.files && input.files[0]) {
+        var gen = document.getElementById('generatedPhotoUrl');
+        if (gen) gen.value = '';
         const reader = new FileReader();
         reader.onload = function(e) { document.getElementById('avatarPreview').src = e.target.result; };
         reader.readAsDataURL(input.files[0]);

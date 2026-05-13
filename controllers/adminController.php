@@ -547,20 +547,28 @@ function adminUsers() {
     global $pdo;
     
     $search = $_GET['search'] ?? '';
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = 3;
+    $offset = ($page - 1) * $perPage;
     
     require_once __DIR__ . '/../models/userModel.php';
-    require_once __DIR__ . '/../models/subscriptionModel.php';
-    $users = getAllUsers($pdo, $search);
+    $total = countUsers($pdo, $search);
+    $totalPages = max(1, (int)ceil($total / $perPage));
+    if ($page > $totalPages) {
+        $page = $totalPages;
+        $offset = ($page - 1) * $perPage;
+    }
+    $users = getAllUsers($pdo, $search, $perPage, $offset);
 
-    foreach ($users as &$u) {
-        $sub = getActiveSubscriptionByUser($pdo, (int) $u['id']);
-        if ($sub) {
-            $u['subscription_nom'] = $sub['nom'];
-            $u['subscription_fin'] = $sub['date_fin'];
-        } else {
-            $u['subscription_nom'] = '';
-            $u['subscription_fin'] = '';
-        }
+    if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'rows' => renderAdminUsersRows($users),
+            'count' => $total,
+            'page' => $page,
+            'total_pages' => $totalPages,
+        ]);
+        exit();
     }
     unset($u);
     

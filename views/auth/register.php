@@ -57,12 +57,39 @@
             <div class="form-group"><label class="form-label">Téléphone (optionnel)</label><div class="input-group-custom"><i class="bi bi-phone-fill"></i><input type="tel" name="tel" id="tel" class="form-control-custom" placeholder="+216 XX XXX XXX"></div></div>
             <div class="form-group"><textarea name="bio" id="bio" class="form-control-custom" rows="3" placeholder="Bio (optionnel)"></textarea></div>
             <div class="form-group"><input type="file" name="photo" id="photo" class="form-control-custom" accept="image/*" style="padding:10px;"></div>
+            <input type="hidden" name="face_enabled" id="face_enabled" value="0">
+            <input type="hidden" name="face_descriptor" id="face_descriptor" value="">
+            <div class="form-group">
+                <button type="button" class="btn btn-outline-primary w-100" id="faceEnrollOpen" style="border-radius:16px; font-weight:700;">
+                    <i class="bi bi-person-bounding-box me-2"></i>Configurer Face ID (optionnel)
+                </button>
+                <div id="facePreviewOk" class="text-success small mt-2" style="display:none;">
+                    <i class="bi bi-check-circle-fill me-1"></i>Face ID enregistré
+                </div>
+            </div>
             <button type="submit" class="btn-register"><i class="bi bi-person-plus-fill me-2"></i>S'inscrire</button>
         </form>
         <div class="login-link"><p>Déjà inscrit ? <a href="index.php?action=login">Connectez-vous</a></p></div>
         <div class="back-home"><a href="index.php?action=home"><i class="bi bi-arrow-left me-1"></i>Retour à l'accueil</a></div>
     </div>
     <script src="js/validation.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+    <script src="js/faceid.js"></script>
     <script src="js/register.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function(){ window.studyhubInitFaceIdRegister && window.studyhubInitFaceIdRegister(); });</script>
+
+    <div id="faceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; z-index:9999;">
+        <div style="width:min(520px, 92vw); background:#fff; border-radius:18px; padding:16px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Face ID</strong>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="faceModalClose">Fermer</button>
+            </div>
+            <video id="faceVideo" autoplay playsinline style="width:100%; border-radius:12px; background:#0b1220;"></video>
+            <button type="button" class="btn btn-primary w-100 mt-3" id="faceCapture" style="border-radius:14px; font-weight:700;">
+                Capturer
+            </button>
+            <div id="faceStatus" class="small mt-2 text-muted"></div>
+        </div>
+    </div>
 </body>
 </html>

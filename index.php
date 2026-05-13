@@ -26,6 +26,16 @@ switch($action) {
             authLoginGet();
         }
         break;
+
+    case 'login_face':
+        require_once __DIR__ . '/controllers/authController.php';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            authLoginFacePost();
+        } else {
+            header('Location: index.php?action=login');
+            exit();
+        }
+        break;
     
     case 'register':
         require_once __DIR__ . '/controllers/authController.php';
@@ -91,19 +101,9 @@ switch($action) {
         }
         break;
 
-    case 'subscription':
-        require_once __DIR__ . '/controllers/subscriptionController.php';
-        if ($subaction === 'subscribe') {
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                subscriptionSubscribePost();
-            } else {
-                subscriptionPlans();
-            }
-        } elseif ($subaction === 'playlists') {
-            subscriptionPlaylists();
-        } else {
-            subscriptionPlans();
-        }
+    case 'profile_generate_photo':
+        require_once __DIR__ . '/controllers/profileController.php';
+        profileGeneratePhoto();
         break;
     
     case 'admin':

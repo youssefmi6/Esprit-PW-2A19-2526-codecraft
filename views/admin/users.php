@@ -81,6 +81,32 @@
                 </tr>
                 <?php endforeach; ?>
             </tbody></table></div>
+
+            <?php
+                $currentPage = isset($page) ? (int)$page : 1;
+                $pages = isset($totalPages) ? (int)$totalPages : 1;
+                $pages = max(1, $pages);
+                $currentPage = min(max(1, $currentPage), $pages);
+            ?>
+            <nav class="mt-3 d-flex justify-content-center">
+                <ul class="pagination">
+                    <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= max(1, $currentPage-1) ?>">Précédent</a>
+                    </li>
+                    <?php
+                        $start = max(1, $currentPage - 2);
+                        $end = min($pages, $currentPage + 2);
+                        for ($p = $start; $p <= $end; $p++):
+                    ?>
+                        <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
+                            <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= $p ?>"><?= $p ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?= $currentPage >= $pages ? 'disabled' : '' ?>">
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= min($pages, $currentPage+1) ?>">Suivant</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 
@@ -88,6 +114,32 @@
         <form method="POST" action="index.php?action=admin&subaction=users" id="addUserForm" novalidate><input type="hidden" name="action" value="add"><div class="modal-body"><input type="text" name="nom" class="form-control mb-3" placeholder="Nom"><input type="text" name="prenom" class="form-control mb-3" placeholder="Prénom"><input type="email" name="email" class="form-control mb-3" placeholder="Email"><input type="password" name="mdp" class="form-control mb-3" placeholder="Mot de passe"><select name="role" class="form-select"><option value="1">Utilisateur</option><option value="0">Administrateur</option></select></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn-blue">Ajouter</button></div></form>
     </div></div></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const input = document.getElementById('usersSearchInput');
+            const body = document.getElementById('usersTableBody');
+            if (!input || !body) return;
+
+            let timer = null;
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const search = encodeURIComponent(input.value.trim());
+                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}&page=1`;
+                    try {
+                        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        if (typeof data.rows === 'string') {
+                            body.innerHTML = data.rows;
+                        }
+                    } catch (e) {
+                        console.error('Recherche dynamique users error:', e);
+                    }
+                }, 250);
+            });
+        })();
+    </script>
     <script src="../js/validation.js"></script>
     <script src="../js/admin-users.js"></script>
 </body>

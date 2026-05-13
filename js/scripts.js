@@ -1,6 +1,36 @@
 // scripts.js - Scripts principaux
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Theme toggle (light / dark) shared across front office pages.
+    const root = document.documentElement;
+    const savedTheme = localStorage.getItem('studyhub-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+        root.setAttribute('data-theme', savedTheme);
+    } else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const syncThemeIcon = () => {
+        if (!themeIcon) return;
+        const current = root.getAttribute('data-theme') || 'light';
+        themeIcon.className = current === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    };
+    syncThemeIcon();
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const current = root.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('studyhub-theme', next);
+            themeToggle.classList.add('rotate');
+            setTimeout(() => themeToggle.classList.remove('rotate'), 260);
+            syncThemeIcon();
+        });
+    }
+
     // Animation des étoiles de notation
     const ratingStars = document.querySelectorAll('.rating-star');
     if (ratingStars.length) {

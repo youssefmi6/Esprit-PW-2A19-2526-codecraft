@@ -48,10 +48,35 @@
             <div class="form-group"><label class="form-label">Mot de passe</label><div class="input-group-custom"><i class="bi bi-lock-fill"></i><input type="password" name="password" id="password" class="form-control-custom" placeholder="••••••••"></div></div>
             <button type="submit" class="btn-login"><i class="bi bi-box-arrow-in-right me-2"></i>Se connecter</button>
         </form>
+        <button type="button" class="btn-login mt-2" id="faceLoginOpen" style="background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);">
+            <i class="bi bi-person-bounding-box me-2"></i>Se connecter avec Face ID
+        </button>
+
+        <form method="POST" action="index.php?action=login_face" id="faceLoginForm" style="display:none;">
+            <input type="hidden" name="email" id="faceLoginEmail" value="">
+            <input type="hidden" name="face_descriptor" id="faceLoginDescriptor" value="">
+        </form>
         <div class="register-link"><p>Pas encore de compte ? <a href="index.php?action=register">Inscrivez-vous</a></p></div>
         <div class="back-home"><a href="index.php?action=home"><i class="bi bi-arrow-left me-1"></i>Retour à l'accueil</a></div>
     </div>
     <script src="js/validation.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+    <script src="js/faceid.js"></script>
     <script src="js/login.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', function(){ window.studyhubInitFaceIdLogin && window.studyhubInitFaceIdLogin(); });</script>
+
+    <div id="faceLoginModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; z-index:9999;">
+        <div style="width:min(520px, 92vw); background:#fff; border-radius:18px; padding:16px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Connexion Face ID</strong>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="faceLoginClose">Fermer</button>
+            </div>
+            <video id="faceLoginVideo" autoplay playsinline style="width:100%; border-radius:12px; background:#0b1220;"></video>
+            <button type="button" class="btn btn-success w-100 mt-3" id="faceLoginCapture" style="border-radius:14px; font-weight:700;">
+                Se connecter
+            </button>
+            <div id="faceLoginStatus" class="small mt-2 text-muted"></div>
+        </div>
+    </div>
 </body>
 </html>
