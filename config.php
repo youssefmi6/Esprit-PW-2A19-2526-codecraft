@@ -15,11 +15,6 @@ try {
     die("Erreur de connexion : " . $e->getMessage());
 }
 
-$stripeLocalConfigPath = __DIR__ . '/config/stripe.local.php';
-if (file_exists($stripeLocalConfigPath)) {
-    require_once $stripeLocalConfigPath;
-}
-
 // Fonctions d'authentification
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
@@ -54,62 +49,5 @@ function generateStarRating($rating) {
         }
     }
     return $stars;
-}
-
-function getAppBaseUrl() {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
-    if ($scriptDir === '' || $scriptDir === '.') {
-        return $scheme . '://' . $host;
-    }
-    return $scheme . '://' . $host . $scriptDir;
-}
-
-function getStripeConfigValue(string $key, string $default = ''): string {
-    $envValue = getenv($key);
-    if (is_string($envValue) && trim($envValue) !== '') {
-        return trim($envValue);
-    }
-
-    if (defined($key)) {
-        $constValue = constant($key);
-        if (is_string($constValue) && trim($constValue) !== '') {
-            return trim($constValue);
-        }
-    }
-
-    return $default;
-}
-
-function sendActivationEmail($email, $fullName, $token) {
-    $activationUrl = getAppBaseUrl() . '/index.php?action=activate_account&token=' . urlencode($token);
-    $subject = 'Activation de votre compte StudyHub';
-    $name = trim((string)$fullName) !== '' ? $fullName : 'utilisateur';
-    $message = "Bonjour " . $name . ",\n\n";
-    $message .= "Votre compte est actuellement inactif.\n";
-    $message .= "Cliquez sur ce lien pour activer votre compte :\n";
-    $message .= $activationUrl . "\n\n";
-    $message .= "Si vous n'etes pas a l'origine de cette demande, ignorez ce message.\n";
-
-    $html = '<p>Bonjour ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . ',</p>';
-    $html .= '<p>Votre compte est inactif. Cliquez sur le bouton ci-dessous pour l\'activer.</p>';
-    $html .= '<p><a href="' . htmlspecialchars($activationUrl, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;padding:12px 20px;background:#1a8cff;color:#fff;text-decoration:none;border-radius:10px;">Activer mon compte</a></p>';
-    $html .= '<p style="font-size:12px;color:#666;">Ou copiez ce lien :<br>' . htmlspecialchars($activationUrl, ENT_QUOTES, 'UTF-8') . '</p>';
-
-    $result = studyhubSendEmailTransactional($email, $subject, $message, $html);
-    if (empty($result['ok'])) {
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            $_SESSION['last_activation_mail_error'] = $result['error'] ?? 'Erreur envoi email';
-        }
-        if (!empty($result['error'])) {
-            error_log('StudyHub sendActivationEmail: ' . $result['error']);
-        }
-        return false;
-    }
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        unset($_SESSION['last_activation_mail_error']);
-    }
-    return true;
 }
 ?>

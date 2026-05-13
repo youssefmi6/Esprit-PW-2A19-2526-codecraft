@@ -26,16 +26,6 @@ switch($action) {
             authLoginGet();
         }
         break;
-
-    case 'login_face':
-        require_once __DIR__ . '/controllers/authController.php';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            authLoginFacePost();
-        } else {
-            header('Location: index.php?action=login');
-            exit();
-        }
-        break;
     
     case 'register':
         require_once __DIR__ . '/controllers/authController.php';
@@ -45,33 +35,10 @@ switch($action) {
             authRegisterGet();
         }
         break;
-
-    case 'activate_account':
-        require_once __DIR__ . '/controllers/authController.php';
-        authActivateAccount();
-        break;
-
-    case 'resend_activation':
-        require_once __DIR__ . '/controllers/authController.php';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            authResendActivationPost();
-        } else {
-            authResendActivationGet();
-        }
-        break;
     
     case 'logout':
         require_once __DIR__ . '/controllers/authController.php';
         authLogout();
-        break;
-    
-    case 'forgot_password':
-        require_once __DIR__ . '/controllers/authController.php';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            authForgotPasswordPost();
-        } else {
-            authForgotPasswordGet();
-        }
         break;
     
     case 'resource':
@@ -95,25 +62,15 @@ switch($action) {
         } elseif ($subaction === 'download') {
             resourceDownload($id);
         } elseif ($subaction === 'buy') {
-            resourceBuyCreateCheckout($id);
-        } elseif ($subaction === 'buy_checkout') {
-            resourceBuyCreateCheckout($id);
-        } elseif ($subaction === 'buy_intent') {
-            resourceBuyCreateIntent($id);
-        } elseif ($subaction === 'buy_success') {
-            resourceBuySuccess($id);
-        } elseif ($subaction === 'buy_cancel') {
-            resourceBuyCancel($id);
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                resourceBuyPost($id);
+            } else {
+                resourceBuyGet($id);
+            }
         } elseif ($subaction === 'add_rating') {
             resourceAddRating();
         } elseif ($subaction === 'add_comment') {
             resourceAddComment();
-        } elseif ($subaction === 'update_comment') {
-            resourceUpdateComment();
-        } elseif ($subaction === 'delete_comment') {
-            resourceDeleteComment();
-        } elseif ($subaction === 'react_comment') {
-            resourceReactComment();
         } else {
             resourceDetail($id);
         }
@@ -134,21 +91,57 @@ switch($action) {
         }
         break;
 
-    case 'profile_generate_photo':
-        require_once __DIR__ . '/controllers/profileController.php';
-        profileGeneratePhoto();
+    case 'subscription':
+        require_once __DIR__ . '/controllers/subscriptionController.php';
+        if ($subaction === 'subscribe') {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                subscriptionSubscribePost();
+            } else {
+                subscriptionPlans();
+            }
+        } elseif ($subaction === 'playlists') {
+            subscriptionPlaylists();
+        } else {
+            subscriptionPlans();
+        }
         break;
     
     case 'admin':
         require_once __DIR__ . '/controllers/adminController.php';
         if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 0) {
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                adminLoginPost();
-            } else {
-                adminLoginGet();
-            }
+            adminLoginGet();
         } elseif ($subaction === 'dashboard') {
             adminDashboard();
+        } elseif ($subaction === 'subscriptions') {
+            adminSubscriptions();
+        } elseif ($subaction === 'subscription_add') {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                adminSubscriptionAddPost();
+            } else {
+                adminSubscriptionAddGet();
+            }
+        } elseif ($subaction === 'subscription_edit') {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                adminSubscriptionEditPost($id);
+            } else {
+                adminSubscriptionEditGet($id);
+            }
+        } elseif ($subaction === 'subscription_delete') {
+            adminSubscriptionDelete($id);
+        } elseif ($subaction === 'subscription_plan_add') {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                adminSubscriptionPlanAddPost();
+            } else {
+                adminSubscriptionPlanAddGet();
+            }
+        } elseif ($subaction === 'subscription_plan_edit') {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                adminSubscriptionPlanEditPost($id);
+            } else {
+                adminSubscriptionPlanEditGet($id);
+            }
+        } elseif ($subaction === 'subscription_plan_delete') {
+            adminSubscriptionPlanDelete($id);
         } elseif ($subaction === 'users') {
             adminUsers();
         } elseif ($subaction === 'resources') {
@@ -167,20 +160,14 @@ switch($action) {
             } else {
                 adminEditUserGet($id);
             }
-        } elseif ($subaction === 'view_user') {
-            adminViewUser($id);
         } elseif ($subaction === 'delete_user') {
             adminDeleteUser($id);
-        } elseif ($subaction === 'toggle_user_status') {
-            adminToggleUserStatus($id);
         } elseif ($subaction === 'edit_resource') {
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 adminEditResourcePost($id);
             } else {
                 adminEditResourceGet($id);
             }
-        } elseif ($subaction === 'view_resource') {
-            adminViewResource($id);
         } elseif ($subaction === 'delete_resource') {
             adminDeleteResource($id);
         } elseif ($subaction === 'delete_comment') {

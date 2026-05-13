@@ -14,9 +14,9 @@
         body { font-family:'Inter',sans-serif; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 50%,#90e0ef 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
         .login-container { width:450px; background:white; border-radius:32px; padding:40px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); animation:fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        .login-brand { text-align:center; margin-bottom:16px; }
-        .login-brand-img { max-height:72px; width:auto; max-width:260px; object-fit:contain; }
-        h2 { text-align:center; font-size:22px; font-weight:700; color:#1a3a5c; margin-bottom:8px; }
+        .logo-icon { width:70px; height:70px; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+        .logo-icon i { font-size:35px; color:white; }
+        h2 { text-align:center; font-size:28px; font-weight:700; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
         .subtitle { text-align:center; color:#6c757d; font-size:14px; margin-bottom:30px; }
         .form-group { margin-bottom:24px; }
         .form-label { font-weight:600; font-size:14px; color:#1a3a5c; margin-bottom:8px; display:block; }
@@ -35,8 +35,8 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="login-brand"><img src="uploads/logo.png" alt="StudyHub" class="login-brand-img"></div>
-        <h2>Administration</h2>
+        <div class="logo-icon"><i class="bi bi-shield-lock-fill"></i></div>
+        <h2>StudyHub Admin</h2>
         <p class="subtitle">Espace d'administration</p>
         <?php if(isset($error)): ?>
         <div class="alert alert-danger show" id="errorAlert"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?></div>

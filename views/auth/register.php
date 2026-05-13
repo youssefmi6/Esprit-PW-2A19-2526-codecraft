@@ -14,8 +14,8 @@
         body { font-family:'Inter',sans-serif; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 50%,#90e0ef 100%); min-height:100vh; padding:40px 20px; }
         .register-container { max-width:600px; margin:0 auto; background:white; border-radius:32px; padding:40px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); animation:fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        .login-brand { text-align:center; margin-bottom:12px; }
-        .login-brand-img { max-height:64px; width:auto; max-width:240px; object-fit:contain; }
+        .logo-icon { width:70px; height:70px; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+        .logo-icon i { font-size:35px; color:white; }
         h2 { text-align:center; font-size:28px; font-weight:700; background:linear-gradient(135deg,#1a8cff 0%,#00b4d8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
         .subtitle { text-align:center; color:#6c757d; font-size:14px; margin-bottom:30px; }
         .form-group { margin-bottom:20px; }
@@ -40,9 +40,9 @@
 </head>
 <body>
     <div class="register-container">
-        <div class="login-brand"><img src="uploads/logo.png" alt="StudyHub" class="login-brand-img"></div>
+        <div class="logo-icon"><i class="bi bi-person-plus-fill"></i></div>
         <h2>Inscription</h2>
-        <p class="subtitle">Créez votre compte</p>
+        <p class="subtitle">Créez votre compte StudyHub</p>
         <?php if(isset($error)): ?>
         <div class="alert alert-danger show" id="errorAlert"><i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?></div>
         <?php endif; ?>
@@ -57,39 +57,12 @@
             <div class="form-group"><label class="form-label">Téléphone (optionnel)</label><div class="input-group-custom"><i class="bi bi-phone-fill"></i><input type="tel" name="tel" id="tel" class="form-control-custom" placeholder="+216 XX XXX XXX"></div></div>
             <div class="form-group"><textarea name="bio" id="bio" class="form-control-custom" rows="3" placeholder="Bio (optionnel)"></textarea></div>
             <div class="form-group"><input type="file" name="photo" id="photo" class="form-control-custom" accept="image/*" style="padding:10px;"></div>
-            <input type="hidden" name="face_enabled" id="face_enabled" value="0">
-            <input type="hidden" name="face_descriptor" id="face_descriptor" value="">
-            <div class="form-group">
-                <button type="button" class="btn btn-outline-primary w-100" id="faceEnrollOpen" style="border-radius:16px; font-weight:700;">
-                    <i class="bi bi-person-bounding-box me-2"></i>Configurer Face ID (optionnel)
-                </button>
-                <div id="facePreviewOk" class="text-success small mt-2" style="display:none;">
-                    <i class="bi bi-check-circle-fill me-1"></i>Face ID enregistré
-                </div>
-            </div>
             <button type="submit" class="btn-register"><i class="bi bi-person-plus-fill me-2"></i>S'inscrire</button>
         </form>
         <div class="login-link"><p>Déjà inscrit ? <a href="index.php?action=login">Connectez-vous</a></p></div>
         <div class="back-home"><a href="index.php?action=home"><i class="bi bi-arrow-left me-1"></i>Retour à l'accueil</a></div>
     </div>
     <script src="js/validation.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
-    <script src="js/faceid.js"></script>
     <script src="js/register.js"></script>
-    <script>document.addEventListener('DOMContentLoaded', function(){ window.studyhubInitFaceIdRegister && window.studyhubInitFaceIdRegister(); });</script>
-
-    <div id="faceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; z-index:9999;">
-        <div style="width:min(520px, 92vw); background:#fff; border-radius:18px; padding:16px;">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong>Face ID</strong>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="faceModalClose">Fermer</button>
-            </div>
-            <video id="faceVideo" autoplay playsinline style="width:100%; border-radius:12px; background:#0b1220;"></video>
-            <button type="button" class="btn btn-primary w-100 mt-3" id="faceCapture" style="border-radius:14px; font-weight:700;">
-                Capturer
-            </button>
-            <div id="faceStatus" class="small mt-2 text-muted"></div>
-        </div>
-    </div>
 </body>
 </html>

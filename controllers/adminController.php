@@ -1,48 +1,7 @@
 <?php
-require_once __DIR__ . '/sql_queries.php';
-
 // controllers/adminController.php
 function adminLoginGet() {
     require_once __DIR__ . '/../views/admin/login.php';
-}
-
-function adminLoginPost() {
-    global $pdo;
-    require_once __DIR__ . '/../models/userModel.php';
-
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    $user = getUserByEmail($pdo, $email);
-    if (!$user || !($password == $user['mdp'] || password_verify($password, $user['mdp']))) {
-        $error = "Email ou mot de passe incorrect";
-        require_once __DIR__ . '/../views/admin/login.php';
-        return;
-    }
-
-    if ((int)($user['role'] ?? 1) !== 0) {
-        $error = "Acces refuse. Ce compte n'est pas administrateur.";
-        require_once __DIR__ . '/../views/admin/login.php';
-        return;
-    }
-
-    if (isset($user['is_active']) && (int)$user['is_active'] !== 1) {
-        $error = "Compte administrateur inactif. Activez-le depuis le lien d'activation.";
-        require_once __DIR__ . '/../views/admin/login.php';
-        return;
-    }
-
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['user_name'] = $user['nom'];
-    $_SESSION['user_prenom'] = $user['prenom'];
-    $_SESSION['user_email'] = $user['email'];
-    $_SESSION['user_role'] = $user['role'];
-    $_SESSION['admin_id'] = $user['id'];
-    $_SESSION['admin_nom'] = $user['nom'];
-    $_SESSION['admin_prenom'] = $user['prenom'];
-
-    header('Location: index.php?action=admin&subaction=dashboard');
-    exit();
 }
 
 function adminDashboard() {
@@ -56,28 +15,468 @@ function adminDashboard() {
     require_once __DIR__ . '/../models/userModel.php';
     require_once __DIR__ . '/../models/resourceModel.php';
     require_once __DIR__ . '/../models/commentModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
     
-    $userStats = getUserDashboardStats($pdo);
-    $resourceStats = getResourceStats($pdo);
     $stats = [];
-    $stats['total_users'] = (int)($userStats['total_users'] ?? 0);
-    $stats['total_admins'] = (int)($userStats['total_admins'] ?? 0);
-    $stats['total_regular_users'] = (int)($userStats['total_regular_users'] ?? 0);
-    $stats['total_active_users'] = (int)($userStats['total_active_users'] ?? 0);
-    $stats['total_inactive_users'] = (int)($userStats['total_inactive_users'] ?? 0);
-    $stats['total_resources'] = (int)($resourceStats['total_resources'] ?? 0);
-    $stats['total_pages'] = (int)($resourceStats['total_pages'] ?? 0);
-    $stats['total_downloads'] = (int)($resourceStats['total_downloads'] ?? 0);
-    $stats['total_matieres'] = (int)($resourceStats['total_matieres'] ?? 0);
-    $stats['avg_resource_rating'] = round((float)($resourceStats['avg_rating'] ?? 0), 2);
+    $stats['total_users'] = count(getAllUsers($pdo));
+    $stats['total_resources'] = count(getAllResources($pdo));
+    $stats['total_pages'] = 0;
+    $stats['total_downloads'] = 0;
     $stats['total_comments'] = count(getAllComments($pdo));
+    
+    $subStats = getSubscriptionDashboardStats($pdo);
+    $stats['subscribers_active'] = $subStats['total_active_subscribers'];
+    $stats['subscribers_without'] = max(0, $stats['total_users'] - $subStats['total_active_subscribers']);
+    $recentAbonnements = getRecentAbonnementsForAdmin($pdo, 8);
     
     $recentUsers = getRecentUsers($pdo, 5);
     $recentResources = getRecentResources($pdo, 5);
     $topResources = getTopResources($pdo, 5);
-    $resourcesByMatiere = getResourcesByMatiere($pdo, 8);
     
     require_once __DIR__ . '/../views/admin/dashboard.php';
+}
+
+function adminSubscriptions() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+    $search = $_GET['search'] ?? '';
+    $abonnements = getAllAbonnementsForAdmin($pdo, $search);
+    $subStats = getSubscriptionDashboardStats($pdo);
+    $catalogPlans = getAllSubscriptionPlansCatalog($pdo);
+
+    require_once __DIR__ . '/../views/admin/subscriptions.php';
+}
+
+function adminSubscriptionAddGet() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/userModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    $users = getAllUsers($pdo);
+    $abonnement = null;
+    $catalogPlansForAssign = subscriptionPlansTablesExist($pdo) ? getAllSubscriptionPlansCatalog($pdo) : [];
+
+    require_once __DIR__ . '/../views/admin/subscription_form.php';
+}
+
+function adminSubscriptionAddPost() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/userModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    $idUser = (int) ($_POST['id_user'] ?? 0);
+    $dateDebut = trim($_POST['date_debut'] ?? '');
+    $dateFin = trim($_POST['date_fin'] ?? '');
+
+    if ($idUser < 1 || !getUserById($pdo, $idUser)) {
+        $_SESSION['admin_sub_error'] = 'Membre invalide.';
+        header('Location: index.php?action=admin&subaction=subscription_add');
+        exit();
+    }
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateDebut) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFin)) {
+        $_SESSION['admin_sub_error'] = 'Dates invalides (format AAAA-MM-JJ).';
+        header('Location: index.php?action=admin&subaction=subscription_add');
+        exit();
+    }
+
+    $catalogPlanId = (int) ($_POST['catalog_plan_id'] ?? 0);
+    $planIdForRow = null;
+    $fields = null;
+
+    if (subscriptionPlansTablesExist($pdo) && $catalogPlanId > 0) {
+        $p = getSubscriptionPlanById($pdo, $catalogPlanId);
+        if ($p) {
+            $fields = [
+                'nom' => $p['name'],
+                'prix' => (int) $p['prix'],
+                'descreption' => mb_substr($p['description'], 0, 500)
+            ];
+            $planIdForRow = $catalogPlanId;
+        }
+    }
+    if (!$fields) {
+        $fields = adminBuildSubscriptionPlanFields($_POST);
+    }
+    if (!$fields) {
+        $_SESSION['admin_sub_error'] = 'Choisissez un type du catalogue ou renseignez un plan personnalisé (nom, prix).';
+        header('Location: index.php?action=admin&subaction=subscription_add');
+        exit();
+    }
+
+    $ok = createAbonnementAdmin($pdo, [
+        'id_user' => $idUser,
+        'plan_id' => $planIdForRow,
+        'nom' => $fields['nom'],
+        'descreption' => $fields['descreption'],
+        'prix' => $fields['prix'],
+        'date_debut' => $dateDebut,
+        'date_fin' => $dateFin,
+        'card_holder' => null,
+        'payment_last4' => null
+    ]);
+
+    if ($ok) {
+        $_SESSION['admin_sub_success'] = 'Abonnement créé.';
+    } else {
+        $_SESSION['admin_sub_error'] = 'Impossible de créer l\'abonnement.';
+    }
+
+    header('Location: index.php?action=admin&subaction=subscriptions');
+    exit();
+}
+
+function adminSubscriptionEditGet($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/userModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    if ((int) $id < 1) {
+        $_SESSION['admin_sub_error'] = 'Identifiant d\'abonnement manquant ou invalide.';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $abonnement = getAbonnementByIdForAdmin($pdo, $id);
+    if (!$abonnement) {
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $users = getAllUsers($pdo);
+    $catalogPlansForAssign = subscriptionPlansTablesExist($pdo) ? getAllSubscriptionPlansCatalog($pdo) : [];
+
+    require_once __DIR__ . '/../views/admin/subscription_form.php';
+}
+
+function adminSubscriptionEditPost($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/userModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    if ((int) $id < 1) {
+        $_SESSION['admin_sub_error'] = 'Identifiant d\'abonnement manquant ou invalide.';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $existing = getAbonnementByIdForAdmin($pdo, $id);
+    if (!$existing) {
+        $_SESSION['admin_sub_error'] = 'Abonnement introuvable.';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $idUser = (int) ($_POST['id_user'] ?? 0);
+    $dateDebut = trim($_POST['date_debut'] ?? '');
+    $dateFin = trim($_POST['date_fin'] ?? '');
+
+    if ($idUser < 1 || !getUserById($pdo, $idUser)) {
+        $_SESSION['admin_sub_error'] = 'Membre invalide.';
+        header('Location: index.php?action=admin&subaction=subscription_edit&id=' . $id);
+        exit();
+    }
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateDebut) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFin)) {
+        $_SESSION['admin_sub_error'] = 'Dates invalides.';
+        header('Location: index.php?action=admin&subaction=subscription_edit&id=' . $id);
+        exit();
+    }
+
+    $catalogPlanId = (int) ($_POST['catalog_plan_id'] ?? 0);
+    $planIdForRow = null;
+    $fields = null;
+
+    if (subscriptionPlansTablesExist($pdo) && $catalogPlanId > 0) {
+        $p = getSubscriptionPlanById($pdo, $catalogPlanId);
+        if ($p) {
+            $fields = [
+                'nom' => $p['name'],
+                'prix' => (int) $p['prix'],
+                'descreption' => mb_substr($p['description'], 0, 500)
+            ];
+            $planIdForRow = $catalogPlanId;
+        }
+    }
+    if (!$fields) {
+        $fields = adminBuildSubscriptionPlanFields($_POST);
+    }
+    if (!$fields) {
+        $_SESSION['admin_sub_error'] = 'Choisissez un type du catalogue ou un plan personnalisé (nom, prix).';
+        header('Location: index.php?action=admin&subaction=subscription_edit&id=' . $id);
+        exit();
+    }
+
+    $holder = trim($_POST['card_holder'] ?? '');
+    $last4 = preg_replace('/\D/', '', $_POST['payment_last4'] ?? '');
+    if ($last4 !== '' && strlen($last4) > 4) {
+        $last4 = substr($last4, -4);
+    }
+
+    $ok = updateAbonnementAdmin($pdo, $id, [
+        'id_user' => $idUser,
+        'plan_id' => $planIdForRow,
+        'nom' => $fields['nom'],
+        'descreption' => $fields['descreption'],
+        'prix' => $fields['prix'],
+        'date_debut' => $dateDebut,
+        'date_fin' => $dateFin,
+        'card_holder' => $holder !== '' ? mb_substr($holder, 0, 120) : ($existing['card_holder'] ?? null),
+        'payment_last4' => strlen($last4) === 4 ? $last4 : ($existing['payment_last4'] ?? null)
+    ]);
+
+    if ($ok) {
+        $_SESSION['admin_sub_success'] = 'Abonnement modifié.';
+    } else {
+        $_SESSION['admin_sub_error'] = 'Impossible de modifier.';
+    }
+
+    header('Location: index.php?action=admin&subaction=subscriptions');
+    exit();
+}
+
+function adminSubscriptionDelete($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    if ((int) $id < 1) {
+        $_SESSION['admin_sub_error'] = 'Identifiant d\'abonnement manquant ou invalide.';
+    } elseif (deleteAbonnementAdmin($pdo, $id)) {
+        $_SESSION['admin_sub_success'] = 'Abonnement supprimé.';
+    } else {
+        $_SESSION['admin_sub_error'] = 'Suppression impossible (abonnement introuvable ou contrainte base de données).';
+    }
+
+    header('Location: index.php?action=admin&subaction=subscriptions');
+    exit();
+}
+
+function adminSubscriptionPlanAddGet() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/resourceModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    if (!subscriptionPlansTablesExist($pdo)) {
+        $_SESSION['admin_sub_error'] = 'Importez ou mettez à jour la base avec le fichier studehub.sql (tables catalogue).';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $plan = null;
+    $selectedIds = [];
+    $allResources = getAllResources($pdo);
+
+    require_once __DIR__ . '/../views/admin/subscription_plan_form.php';
+}
+
+function adminSubscriptionPlanAddPost() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    if (!subscriptionPlansTablesExist($pdo)) {
+        $_SESSION['admin_sub_error'] = 'Tables catalogue absentes. Réimportez studehub.sql ou créez subscription_plans.';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $prix = (int) ($_POST['prix'] ?? 0);
+    $resources = isset($_POST['resources']) && is_array($_POST['resources'])
+        ? array_values(array_filter(array_map('intval', $_POST['resources'])))
+        : [];
+    $saveAction = $_POST['save_action'] ?? 'draft';
+
+    if ($name === '') {
+        $_SESSION['admin_sub_error'] = 'Le nom du type d\'abonnement est obligatoire.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_add');
+        exit();
+    }
+
+    if ($saveAction === 'publish' && count($resources) < 1) {
+        $_SESSION['admin_sub_error'] = 'Ajoutez au moins une ressource avant de publier.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_add');
+        exit();
+    }
+
+    $published = ($saveAction === 'publish') ? 1 : 0;
+    $newId = createSubscriptionPlan($pdo, $name, $description, $prix, $published);
+    saveSubscriptionPlanResources($pdo, $newId, $resources);
+
+    $_SESSION['admin_sub_success'] = $published
+        ? 'Type d\'abonnement publié : les étudiants peuvent le choisir sur la page Abonnements.'
+        : 'Brouillon enregistré. Vous pouvez cocher des ressources puis cliquer sur Publier.';
+
+    header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $newId);
+    exit();
+}
+
+function adminSubscriptionPlanEditGet($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/resourceModel.php';
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    $id = (int) $id;
+    if ($id < 1 || !subscriptionPlansTablesExist($pdo)) {
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $plan = getSubscriptionPlanById($pdo, $id);
+    if (!$plan) {
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $selectedIds = getResourceIdsForPlan($pdo, $id);
+    $allResources = getAllResources($pdo);
+
+    require_once __DIR__ . '/../views/admin/subscription_plan_form.php';
+}
+
+function adminSubscriptionPlanEditPost($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    $id = (int) $id;
+    if ($id < 1 || !subscriptionPlansTablesExist($pdo)) {
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $plan = getSubscriptionPlanById($pdo, $id);
+    if (!$plan) {
+        $_SESSION['admin_sub_error'] = 'Type introuvable.';
+        header('Location: index.php?action=admin&subaction=subscriptions');
+        exit();
+    }
+
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $prix = (int) ($_POST['prix'] ?? 0);
+    $resources = isset($_POST['resources']) && is_array($_POST['resources'])
+        ? array_values(array_filter(array_map('intval', $_POST['resources'])))
+        : [];
+    $saveAction = $_POST['save_action'] ?? 'draft';
+
+    if ($name === '') {
+        $_SESSION['admin_sub_error'] = 'Le nom est obligatoire.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+        exit();
+    }
+
+    if ($saveAction === 'publish' && count($resources) < 1) {
+        $_SESSION['admin_sub_error'] = 'Ajoutez au moins une ressource pour publier.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+        exit();
+    }
+
+    if ($saveAction === 'publish') {
+        $published = 1;
+    } elseif ($saveAction === 'unpublish') {
+        $published = 0;
+    } elseif ($saveAction === 'draft') {
+        $published = 0;
+    } else {
+        $published = (int) ($plan['published'] ?? 0);
+    }
+
+    updateSubscriptionPlan($pdo, $id, $name, $description, $prix, $published);
+    saveSubscriptionPlanResources($pdo, $id, $resources);
+
+    if ($published) {
+        $_SESSION['admin_sub_success'] = 'Type mis à jour et publié.';
+    } elseif ($saveAction === 'unpublish') {
+        $_SESSION['admin_sub_success'] = 'Type dépublié (plus visible pour les étudiants).';
+    } elseif ($saveAction === 'draft') {
+        $_SESSION['admin_sub_success'] = 'Type enregistré en brouillon.';
+    } else {
+        $_SESSION['admin_sub_success'] = 'Modifications enregistrées.';
+    }
+
+    header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+    exit();
+}
+
+function adminSubscriptionPlanDelete($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+
+    $id = (int) $id;
+    if ($id > 0 && deleteSubscriptionPlan($pdo, $id)) {
+        $_SESSION['admin_sub_success'] = 'Type d\'abonnement supprimé.';
+    } else {
+        $_SESSION['admin_sub_error'] = 'Suppression impossible.';
+    }
+
+    header('Location: index.php?action=admin&subaction=subscriptions');
+    exit();
 }
 
 function adminUsers() {
@@ -89,29 +488,22 @@ function adminUsers() {
     global $pdo;
     
     $search = $_GET['search'] ?? '';
-    $page = max(1, (int)($_GET['page'] ?? 1));
-    $perPage = 3;
-    $offset = ($page - 1) * $perPage;
     
     require_once __DIR__ . '/../models/userModel.php';
-    $total = countUsers($pdo, $search);
-    $totalPages = max(1, (int)ceil($total / $perPage));
-    if ($page > $totalPages) {
-        $page = $totalPages;
-        $offset = ($page - 1) * $perPage;
-    }
-    $users = getAllUsers($pdo, $search, $perPage, $offset);
+    require_once __DIR__ . '/../models/subscriptionModel.php';
+    $users = getAllUsers($pdo, $search);
 
-    if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode([
-            'rows' => renderAdminUsersRows($users),
-            'count' => $total,
-            'page' => $page,
-            'total_pages' => $totalPages,
-        ]);
-        exit();
+    foreach ($users as &$u) {
+        $sub = getActiveSubscriptionByUser($pdo, (int) $u['id']);
+        if ($sub) {
+            $u['subscription_nom'] = $sub['nom'];
+            $u['subscription_fin'] = $sub['date_fin'];
+        } else {
+            $u['subscription_nom'] = '';
+            $u['subscription_fin'] = '';
+        }
     }
+    unset($u);
     
     require_once __DIR__ . '/../views/admin/users.php';
 }
@@ -127,22 +519,11 @@ function adminResources() {
     $search = $_GET['search'] ?? '';
     $type_filter = $_GET['type'] ?? '';
     $matiere_filter = $_GET['matiere'] ?? '';
-    $sort = $_GET['sort'] ?? 'date_desc';
     
     require_once __DIR__ . '/../models/resourceModel.php';
-    $resources = getAllResources($pdo, $search, $type_filter, $matiere_filter, $sort);
+    $resources = getAllResources($pdo, $search, $type_filter, $matiere_filter);
     $types = getAllTypes($pdo);
     $matieres = getAllMatieres($pdo);
-
-    if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode([
-            'rows' => renderAdminResourcesRows($resources),
-            'count' => count($resources),
-            'sort' => $sort,
-        ]);
-        exit();
-    }
     
     require_once __DIR__ . '/../views/admin/resources.php';
 }
@@ -205,32 +586,6 @@ function adminProfilePost() {
     
     header('Location: index.php?action=admin&subaction=profile');
     exit();
-}
-
-function adminViewUser($id) {
-    if (!isAdmin()) {
-        adminLoginGet();
-        return;
-    }
-    
-    global $pdo;
-    
-    if ($id <= 0) {
-        header('Location: index.php?action=admin&subaction=users');
-        exit();
-    }
-    
-    require_once __DIR__ . '/../models/userModel.php';
-    
-    $user = getUserById($pdo, $id);
-    if (!$user) {
-        header('Location: index.php?action=admin&subaction=users');
-        exit();
-    }
-    
-    $stats = getUserStats($pdo, $id);
-    
-    require_once __DIR__ . '/../views/admin/view_user.php';
 }
 
 function adminEditUserGet($id) {
@@ -302,69 +657,6 @@ function adminDeleteUser($id) {
     
     header('Location: index.php?action=admin&subaction=users');
     exit();
-}
-
-function adminToggleUserStatus($id) {
-    if (!isAdmin()) {
-        adminLoginGet();
-        return;
-    }
-
-    global $pdo;
-    require_once __DIR__ . '/../models/userModel.php';
-
-    $currentAdmin = getCurrentUser($pdo);
-    $user = getUserById($pdo, $id);
-    if (!$user || (int)$id === (int)$currentAdmin['id']) {
-        header('Location: index.php?action=admin&subaction=users');
-        exit();
-    }
-
-    $newStatus = ((int)($user['is_active'] ?? 1) === 1) ? 0 : 1;
-    setUserActiveStatus($pdo, $id, $newStatus);
-
-    if ($newStatus === 0) {
-        $token = bin2hex(random_bytes(32));
-        $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
-        setActivationToken($pdo, $id, $token, $expiresAt);
-        sendActivationEmail($user['email'], trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? '')), $token);
-        $_SESSION['admin_users_message'] = "Utilisateur desactive. Lien d'activation envoye par email.";
-    } else {
-        setActivationToken($pdo, $id, '', null);
-        $_SESSION['admin_users_message'] = "Utilisateur active avec succes.";
-    }
-
-    header('Location: index.php?action=admin&subaction=users');
-    exit();
-}
-
-function adminViewResource($id) {
-    if (!isAdmin()) {
-        adminLoginGet();
-        return;
-    }
-    
-    global $pdo;
-    
-    if ($id <= 0) {
-        header('Location: index.php?action=admin&subaction=resources');
-        exit();
-    }
-    
-    require_once __DIR__ . '/../models/resourceModel.php';
-    require_once __DIR__ . '/../models/commentModel.php';
-    require_once __DIR__ . '/../models/ratingModel.php';
-    
-    $resource = getResourceById($pdo, $id);
-    if (!$resource) {
-        header('Location: index.php?action=admin&subaction=resources');
-        exit();
-    }
-    
-    $comments = getCommentsByResource($pdo, $id);
-    $totalVotes = getTotalVotes($pdo, $id);
-    
-    require_once __DIR__ . '/../views/admin/view_resource.php';
 }
 
 function adminEditResourceGet($id) {
@@ -475,77 +767,5 @@ function adminDownloadResource($id) {
     
     header('Location: index.php?action=admin&subaction=resources');
     exit();
-}
-
-function renderAdminUsersRows($users) {
-    if (empty($users)) {
-        return '<tr><td colspan="8" class="text-center text-muted py-4">Aucun utilisateur trouve.</td></tr>';
-    }
-
-    $html = '';
-    foreach ($users as $user) {
-        $fullName = trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? ''));
-        $roleLabel = ((int)($user['role'] ?? 1) === 0) ? 'Admin' : 'User';
-        $isActive = (int)($user['is_active'] ?? 1) === 1;
-        $statusBadge = $isActive ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-danger">Inactif</span>';
-        $isCurrentAdmin = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === (int)$user['id'];
-        $statusTitle = $isCurrentAdmin ? 'Statut de votre compte' : ($isActive ? 'Desactiver et envoyer lien email' : 'Activer');
-        $statusIcon = $isActive ? 'bi-toggle-off' : 'bi-toggle-on';
-        $statusClass = $isActive ? 'btn-delete' : 'btn-edit';
-        $statusAction = $isCurrentAdmin
-            ? '<span class="' . $statusClass . '" title="' . $statusTitle . '"><i class="bi ' . $statusIcon . '"></i></span>'
-            : '<a href="index.php?action=admin&subaction=toggle_user_status&id=' . (int)$user['id'] . '" class="' . $statusClass . '" title="' . $statusTitle . '" onclick="return confirm(\'Changer le statut de ce compte ?\')"><i class="bi ' . $statusIcon . '"></i></a>';
-        $html .= '<tr>'
-            . '<td>' . (int)$user['id'] . '</td>'
-            . '<td><i class="bi bi-person-circle me-2" style="color:#1a8cff"></i>' . escape($fullName) . '</td>'
-            . '<td>' . escape($user['email'] ?? '') . '</td>'
-            . '<td>' . escape(($user['universite'] ?? '') ?: '-') . '</td>'
-            . '<td>' . escape(($user['filiere'] ?? '') ?: '-') . '</td>'
-            . '<td><span class="badge bg-secondary">' . $roleLabel . '</span></td>'
-            . '<td>' . $statusBadge . '</td>'
-            . '<td>'
-            . '<a href="index.php?action=admin&subaction=view_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Inspecter le profil"><i class="bi bi-eye-fill"></i></a>'
-            . '<a href="index.php?action=admin&subaction=edit_user&id=' . (int)$user['id'] . '" class="btn-edit" title="Modifier"><i class="bi bi-pencil-fill"></i></a>'
-            . $statusAction
-            . '<a href="index.php?action=admin&subaction=delete_user&id=' . (int)$user['id'] . '" class="btn-delete" title="Supprimer" onclick="return confirm(\'Supprimer ?\')"><i class="bi bi-trash3-fill"></i></a>'
-            . '</td>'
-            . '</tr>';
-    }
-
-    return $html;
-}
-
-function renderAdminResourcesRows($resources) {
-    if (empty($resources)) {
-        return '<tr><td colspan="10" class="text-center text-muted py-4">Aucune ressource trouvée.</td></tr>';
-    }
-
-    $html = '';
-    foreach ($resources as $r) {
-        $title = substr($r['titre'] ?? '', 0, 40);
-        $rating = (float)($r['note_moyenne'] ?? 0);
-        $ratingCell = $rating > 0
-            ? '<i class="bi bi-star-fill text-warning"></i> ' . escape((string)$rating)
-            : '-';
-
-        $html .= '<tr>'
-            . '<td>' . (int)$r['id_res'] . '</td>'
-            . '<td>' . escape($title) . '</td>'
-            . '<td><span class="badge bg-info">' . escape($r['type'] ?? '') . '</span></td>'
-            . '<td><span class="badge-matiere">' . escape(($r['matiere'] ?? '') ?: 'Autre') . '</span></td>'
-            . '<td>' . escape(($r['niveau'] ?? '') ?: '-') . '</td>'
-            . '<td>' . escape(trim(($r['prenom'] ?? '') . ' ' . ($r['nom'] ?? ''))) . '</td>'
-            . '<td>' . escape((string)(($r['pages'] ?? '') ?: '-')) . '</td>'
-            . '<td><i class="bi bi-download"></i> ' . (int)($r['downloads'] ?? 0) . '</td>'
-            . '<td>' . $ratingCell . '</td>'
-            . '<td>'
-            . '<a href="index.php?action=admin&subaction=view_resource&id=' . (int)$r['id_res'] . '" class="btn-edit"><i class="bi bi-eye-fill"></i></a>'
-            . '<a href="index.php?action=admin&subaction=edit_resource&id=' . (int)$r['id_res'] . '" class="btn-edit"><i class="bi bi-pencil-fill"></i></a>'
-            . '<a href="index.php?action=admin&subaction=delete_resource&id=' . (int)$r['id_res'] . '" class="btn-delete" onclick="return confirm(\'Supprimer ?\')"><i class="bi bi-trash3-fill"></i></a>'
-            . '</td>'
-            . '</tr>';
-    }
-
-    return $html;
 }
 ?>
