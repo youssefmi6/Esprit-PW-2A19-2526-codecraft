@@ -56,6 +56,7 @@
             <div class="nav-item"><a href="index.php?action=admin&subaction=subscriptions" class="nav-link"><i class="bi bi-star-fill"></i><span>Abonnements</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=users" class="nav-link"><i class="bi bi-people-fill"></i><span>Utilisateurs</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=resources" class="nav-link"><i class="bi bi-folder-fill"></i><span>Ressources</span></a></div>
+            <div class="nav-item"><a href="index.php?action=admin&subaction=playlists" class="nav-link"><i class="bi bi-collection-play-fill"></i><span>Playlists</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=comments" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Commentaires</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=profile" class="nav-link"><i class="bi bi-person-fill"></i><span>Mon profil</span></a></div>
             <div class="nav-item logout-link"><a href="index.php?action=logout" class="nav-link"><i class="bi bi-box-arrow-right"></i><span>Déconnexion</span></a></div>
@@ -157,6 +158,32 @@
                 </table>
             </div>
             <div class="mt-2"><a href="index.php?action=admin&subaction=subscriptions" class="btn-sm-custom">Toute la gestion des abonnements</a></div>
+        </div>
+
+        <div class="content-card">
+            <div class="chart-header">
+                <h5><i class="bi bi-collection-play-fill me-2 text-primary"></i>Playlists admin</h5>
+                <a href="index.php?action=admin&subaction=playlists" class="btn-sm-custom">Créer / Modifier playlists</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Nom</th><th>Description</th><th>Ressources</th><th class="text-end">Action</th></tr></thead>
+                    <tbody>
+                        <?php if (!empty($recentPlaylists)): ?>
+                            <?php foreach ($recentPlaylists as $pl): ?>
+                                <tr>
+                                    <td><strong><?= escape($pl['nom']) ?></strong></td>
+                                    <td><?= escape($pl['description']) ?></td>
+                                    <td><?= (int) $pl['resource_count'] ?></td>
+                                    <td class="text-end"><a href="index.php?action=admin&subaction=playlists&edit_id=<?= (int) $pl['id_abonement'] ?>" class="btn btn-outline-primary btn-sm">Modifier</a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="4" class="text-center text-muted py-3">Aucune playlist. <a href="index.php?action=admin&subaction=playlists">Créer une playlist</a></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="row"><div class="col-md-6"><div class="content-card"><div class="chart-header"><h5><i class="bi bi-people-fill me-2"></i>Derniers utilisateurs</h5><a href="index.php?action=admin&subaction=users" class="btn-sm-custom">Voir tout</a></div><div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th></tr></thead><tbody><?php foreach($recentUsers as $user): ?><tr><td><?= escape($user['prenom'] . ' ' . $user['nom']) ?></td><td><?= escape($user['email']) ?></td><td><span class="badge bg-secondary"><?= $user['role'] == 0 ? 'Admin' : 'User' ?></span></td></tr><?php endforeach; ?></tbody></table></div></div></div>

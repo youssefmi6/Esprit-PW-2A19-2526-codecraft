@@ -63,8 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         accesSelect.addEventListener('change', function() {
             const priceDiv = document.getElementById('priceDiv');
             if (priceDiv) priceDiv.style.display = this.value === 'Premium' ? 'block' : 'none';
-            if (this.value === 'Premium' && prixInput) prixInput.required = true;
-            else if (prixInput) prixInput.required = false;
+            if (prixInput && this.value !== 'Premium') removeError(prixInput);
         });
     }
     

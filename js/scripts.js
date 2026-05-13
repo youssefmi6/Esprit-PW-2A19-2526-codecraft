@@ -51,4 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         document.querySelectorAll('.alert-success').forEach(alert => alert.style.display = 'none');
     }, 3000);
+
+    const commentForm = document.getElementById('commentForm');
+    if (commentForm) {
+        const messageField = commentForm.querySelector('textarea[name="message"]');
+        commentForm.addEventListener('submit', function(e) {
+            if (!messageField || !validateCommentMessage(messageField.value)) {
+                e.preventDefault();
+                if (messageField) showError(messageField, 'Veuillez saisir un commentaire');
+            } else if (messageField) removeError(messageField);
+        });
+    }
 });

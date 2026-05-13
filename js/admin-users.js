@@ -1,7 +1,7 @@
 // admin-users.js - Validation du formulaire admin utilisateurs
 
 document.addEventListener('DOMContentLoaded', function() {
-    const addUserForm = document.querySelector('#addUserModal form');
+    const addUserForm = document.getElementById('addUserForm');
     if (!addUserForm) return;
     
     const nomInput = addUserForm.querySelector('input[name="nom"]');

@@ -78,6 +78,7 @@ function subscriptionPlaylists() {
             $playlists[$key] = [
                 'name' => $row['playlist_nom'],
                 'description' => $row['playlist_description'],
+                'photo' => $row['playlist_photo'] ?? '',
                 'required_rank' => intval($row['id_abonement']),
                 'resources' => []
             ];

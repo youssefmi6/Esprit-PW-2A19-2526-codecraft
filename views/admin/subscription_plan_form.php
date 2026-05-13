@@ -8,6 +8,7 @@ $descVal = $plan['description'] ?? '';
 $prixVal = isset($plan['prix']) ? (int) $plan['prix'] : 0;
 $pubVal = !empty($plan['published']);
 $selectedIds = isset($selectedIds) ? array_map('intval', (array) $selectedIds) : [];
+$selectedPlaylistIds = isset($selectedPlaylistIds) ? array_map('intval', (array) $selectedPlaylistIds) : [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -47,6 +48,7 @@ $selectedIds = isset($selectedIds) ? array_map('intval', (array) $selectedIds) :
             <div class="nav-item"><a href="index.php?action=admin&subaction=subscriptions" class="nav-link active"><i class="bi bi-star-fill"></i><span>Abonnements</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=users" class="nav-link"><i class="bi bi-people-fill"></i><span>Utilisateurs</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=resources" class="nav-link"><i class="bi bi-folder-fill"></i><span>Ressources</span></a></div>
+            <div class="nav-item"><a href="index.php?action=admin&subaction=playlists" class="nav-link"><i class="bi bi-collection-play-fill"></i><span>Playlists</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=comments" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Commentaires</span></a></div>
             <div class="nav-item"><a href="index.php?action=admin&subaction=profile" class="nav-link"><i class="bi bi-person-fill"></i><span>Mon profil</span></a></div>
             <div class="nav-item logout-link"><a href="index.php?action=logout" class="nav-link"><i class="bi bi-box-arrow-right"></i><span>Déconnexion</span></a></div>
@@ -67,23 +69,44 @@ $selectedIds = isset($selectedIds) ? array_map('intval', (array) $selectedIds) :
                 <div class="alert alert-danger"><?= escape($_SESSION['admin_sub_error']); unset($_SESSION['admin_sub_error']); ?></div>
             <?php endif; ?>
 
-            <form method="post" action="<?= escape($formAction) ?>">
+            <form method="post" action="<?= escape($formAction) ?>" id="adminSubscriptionPlanForm" novalidate>
                 <div class="mb-3">
                     <label class="form-label">Nom du type <span class="text-danger">*</span></label>
-                    <input type="text" name="name" class="form-control" required maxlength="100" value="<?= escape($nameVal) ?>" placeholder="Ex: Pack Révision Bac">
+                    <input type="text" name="name" class="form-control" value="<?= escape($nameVal) ?>" placeholder="Ex: Pack Révision Bac" autocomplete="off">
+                    <div class="form-text">Lettres uniquement (accents autorisés), espaces possibles entre les mots.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="3" maxlength="500" placeholder="Texte visible sur la page abonnements"><?= escape($descVal) ?></textarea>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Texte visible sur la page abonnements"><?= escape($descVal) ?></textarea>
+                    <div class="form-text">Lettres, chiffres et espaces uniquement ; laisser vide si besoin (max 500 caractères).</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Prix (DT)</label>
-                    <input type="number" name="prix" class="form-control" min="0" value="<?= (int) $prixVal ?>">
+                    <label class="form-label">Prix (DT) <span class="text-danger">*</span></label>
+                    <input type="number" name="prix" class="form-control" value="<?= (int) $prixVal ?>">
+                    <div class="form-text">Entier strictement supérieur à 0.</div>
                 </div>
 
                 <?php if ($isEdit): ?>
                     <p class="small mb-2">Statut actuel : <?= $pubVal ? '<span class="badge bg-success">Publié</span>' : '<span class="badge bg-secondary">Brouillon</span>' ?></p>
                 <?php endif; ?>
+
+                <hr>
+                <h6 class="mb-2">Playlists à inclure</h6>
+                <p class="text-muted small">Choisissez une ou plusieurs playlists : leurs ressources seront ajoutées automatiquement.</p>
+                <div class="res-grid mb-3">
+                    <?php foreach (($allPlaylists ?? []) as $pl): ?>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="playlist_groups[]" value="<?= (int) $pl['id_abonement'] ?>"
+                                   id="pl<?= (int) $pl['id_abonement'] ?>" <?= in_array((int) $pl['id_abonement'], $selectedPlaylistIds, true) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="pl<?= (int) $pl['id_abonement'] ?>">
+                                <?= escape($pl['nom']) ?> <small class="text-muted">(<?= (int) $pl['resource_count'] ?> ressources)</small>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (empty($allPlaylists)): ?>
+                        <p class="text-muted mb-0">Aucune playlist disponible. <a href="index.php?action=admin&subaction=playlists">Créer une playlist</a>.</p>
+                    <?php endif; ?>
+                </div>
 
                 <hr>
                 <h6 class="mb-2">Ressources incluses dans ce type</h6>
@@ -118,5 +141,7 @@ $selectedIds = isset($selectedIds) ? array_map('intval', (array) $selectedIds) :
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/validation.js"></script>
+    <script src="../js/admin-forms.js"></script>
 </body>
 </html>

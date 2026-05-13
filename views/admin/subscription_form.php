@@ -80,10 +80,10 @@ $formAction = $isEdit
                 <div class="alert alert-danger"><?= escape($_SESSION['admin_sub_error']); unset($_SESSION['admin_sub_error']); ?></div>
             <?php endif; ?>
 
-            <form method="post" action="<?= escape($formAction) ?>">
+            <form method="post" action="<?= escape($formAction) ?>" id="adminSubscriptionForm" novalidate>
                 <div class="mb-3">
                     <label class="form-label">Membre <span class="text-danger">*</span></label>
-                    <select name="id_user" class="form-select" required>
+                    <select name="id_user" class="form-select">
                         <option value="">— Choisir un utilisateur —</option>
                         <?php foreach ($users as $u): ?>
                             <option value="<?= (int) $u['id'] ?>" <?= ((int) $u['id'] === (int) $id_user_sel) ? 'selected' : '' ?>>
@@ -117,7 +117,7 @@ $formAction = $isEdit
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Prix (DT)</label>
-                        <input type="number" name="custom_prix" class="form-control" min="0" value="<?= escape($custom_prix) ?>">
+                        <input type="number" name="custom_prix" class="form-control" value="<?= escape($custom_prix) ?>">
                     </div>
                     <div>
                         <label class="form-label">Description (max 500 car.)</label>
@@ -128,11 +128,11 @@ $formAction = $isEdit
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Date début</label>
-                        <input type="date" name="date_debut" class="form-control" required value="<?= escape($date_debut) ?>">
+                        <input type="date" name="date_debut" class="form-control" value="<?= escape($date_debut) ?>">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Date fin</label>
-                        <input type="date" name="date_fin" class="form-control" required value="<?= escape($date_fin) ?>">
+                        <input type="date" name="date_fin" class="form-control" value="<?= escape($date_fin) ?>">
                     </div>
                 </div>
 
@@ -145,7 +145,7 @@ $formAction = $isEdit
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">4 derniers chiffres</label>
-                            <input type="text" name="payment_last4" class="form-control" maxlength="4" pattern="[0-9]{0,4}" value="<?= escape($payment_last4_val) ?>">
+                            <input type="text" name="payment_last4" class="form-control" maxlength="4" value="<?= escape($payment_last4_val) ?>">
                         </div>
                     </div>
                 <?php endif; ?>
@@ -158,5 +158,7 @@ $formAction = $isEdit
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/validation.js"></script>
+    <script src="../js/subscription-admin-form.js"></script>
 </body>
 </html>

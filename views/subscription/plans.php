@@ -8,6 +8,7 @@ $catalogAccent = ['#0d9488', '#7c3aed', '#db2777', '#ea580c', '#2563eb'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abonnements - StudyHub</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #f8fafc; font-family: Arial, sans-serif; }
         .plan-card { border-radius: 16px; border: 1px solid #e2e8f0; background: #fff; padding: 24px; height: 100%; }
@@ -93,7 +94,7 @@ $catalogAccent = ['#0d9488', '#7c3aed', '#db2777', '#ea580c', '#2563eb'];
                 <h5 class="modal-title" id="paymentModalLabel">Paiement sécurisé</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <form method="POST" action="index.php?action=subscription&subaction=subscribe" id="paymentForm">
+            <form method="POST" action="index.php?action=subscription&subaction=subscribe" id="paymentForm" novalidate>
                 <div class="modal-body">
                     <input type="hidden" name="plan_id" id="payPlanId" value="">
                     <p class="text-muted small mb-3">Plan sélectionné : <strong id="paySummary"></strong></p>
@@ -101,20 +102,20 @@ $catalogAccent = ['#0d9488', '#7c3aed', '#db2777', '#ea580c', '#2563eb'];
 
                     <div class="mb-3">
                         <label class="form-label" for="card_holder">Titulaire de la carte</label>
-                        <input type="text" class="form-control" id="card_holder" name="card_holder" required autocomplete="cc-name" placeholder="Nom comme sur la carte">
+                        <input type="text" class="form-control" id="card_holder" name="card_holder" autocomplete="cc-name" placeholder="Nom comme sur la carte">
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="card_number">Numéro de carte</label>
-                        <input type="text" class="form-control" id="card_number" name="card_number" required inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="23">
+                        <input type="text" class="form-control" id="card_number" name="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="23">
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label" for="card_expiry">Expiration (MM/AA)</label>
-                            <input type="text" class="form-control" id="card_expiry" name="card_expiry" required autocomplete="cc-exp" placeholder="12/28" maxlength="5">
+                            <input type="text" class="form-control" id="card_expiry" name="card_expiry" autocomplete="cc-exp" placeholder="12/28" maxlength="5">
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label" for="card_cvv">CVV</label>
-                            <input type="password" class="form-control" id="card_cvv" name="card_cvv" required autocomplete="cc-csc" placeholder="123" maxlength="4">
+                            <input type="password" class="form-control" id="card_cvv" name="card_cvv" autocomplete="cc-csc" placeholder="123" maxlength="4">
                         </div>
                     </div>
                 </div>
@@ -128,6 +129,8 @@ $catalogAccent = ['#0d9488', '#7c3aed', '#db2777', '#ea580c', '#2563eb'];
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/validation.js"></script>
+<script src="js/subscribe-checkout.js"></script>
 <script>
 (function() {
     var modal = document.getElementById('paymentModal');

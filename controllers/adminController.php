@@ -16,6 +16,7 @@ function adminDashboard() {
     require_once __DIR__ . '/../models/resourceModel.php';
     require_once __DIR__ . '/../models/commentModel.php';
     require_once __DIR__ . '/../models/subscriptionModel.php';
+    require_once __DIR__ . '/../models/playlistModel.php';
     
     $stats = [];
     $stats['total_users'] = count(getAllUsers($pdo));
@@ -32,6 +33,7 @@ function adminDashboard() {
     $recentUsers = getRecentUsers($pdo, 5);
     $recentResources = getRecentResources($pdo, 5);
     $topResources = getTopResources($pdo, 5);
+    $recentPlaylists = array_slice(getAdminPlaylists($pdo), 0, 6);
     
     require_once __DIR__ . '/../views/admin/dashboard.php';
 }
@@ -45,9 +47,10 @@ function adminSubscriptions() {
     global $pdo;
 
     require_once __DIR__ . '/../models/subscriptionModel.php';
-    $search = $_GET['search'] ?? '';
+    $search = trim($_GET['search'] ?? '');
     $abonnements = getAllAbonnementsForAdmin($pdo, $search);
     $subStats = getSubscriptionDashboardStats($pdo);
+    $subOverviewStats = getSubscriptionAdminOverviewStats($pdo);
     $catalogPlans = getAllSubscriptionPlansCatalog($pdo);
 
     require_once __DIR__ . '/../views/admin/subscriptions.php';
@@ -297,6 +300,7 @@ function adminSubscriptionPlanAddGet() {
 
     require_once __DIR__ . '/../models/resourceModel.php';
     require_once __DIR__ . '/../models/subscriptionModel.php';
+    require_once __DIR__ . '/../models/playlistModel.php';
 
     if (!subscriptionPlansTablesExist($pdo)) {
         $_SESSION['admin_sub_error'] = 'Importez ou mettez à jour la base avec le fichier studehub.sql (tables catalogue).';
@@ -306,7 +310,9 @@ function adminSubscriptionPlanAddGet() {
 
     $plan = null;
     $selectedIds = [];
+    $selectedPlaylistIds = [];
     $allResources = getAllResources($pdo);
+    $allPlaylists = getPlaylistGroupsForSelection($pdo);
 
     require_once __DIR__ . '/../views/admin/subscription_plan_form.php';
 }
@@ -320,6 +326,7 @@ function adminSubscriptionPlanAddPost() {
     global $pdo;
 
     require_once __DIR__ . '/../models/subscriptionModel.php';
+    require_once __DIR__ . '/../models/playlistModel.php';
 
     if (!subscriptionPlansTablesExist($pdo)) {
         $_SESSION['admin_sub_error'] = 'Tables catalogue absentes. Réimportez studehub.sql ou créez subscription_plans.';
@@ -333,10 +340,33 @@ function adminSubscriptionPlanAddPost() {
     $resources = isset($_POST['resources']) && is_array($_POST['resources'])
         ? array_values(array_filter(array_map('intval', $_POST['resources'])))
         : [];
+    $playlistGroups = isset($_POST['playlist_groups']) && is_array($_POST['playlist_groups'])
+        ? array_values(array_filter(array_map('intval', $_POST['playlist_groups'])))
+        : [];
+    $resourcesFromPlaylists = getResourceIdsForPlaylistGroups($pdo, $playlistGroups);
+    $resources = array_values(array_unique(array_merge($resources, $resourcesFromPlaylists)));
     $saveAction = $_POST['save_action'] ?? 'draft';
 
     if ($name === '') {
         $_SESSION['admin_sub_error'] = 'Le nom du type d\'abonnement est obligatoire.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_add');
+        exit();
+    }
+
+    if (!preg_match('/^[\p{L}\s]+$/u', $name) || !preg_match('/\p{L}/u', $name)) {
+        $_SESSION['admin_sub_error'] = 'Le nom ne doit contenir que des lettres et des espaces.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_add');
+        exit();
+    }
+
+    if ($description !== '' && (!preg_match('/^[\p{L}\p{N}\s]+$/u', $description) || mb_strlen($description) > 500)) {
+        $_SESSION['admin_sub_error'] = 'La description : lettres, chiffres et espaces uniquement (max 500 caractères).';
+        header('Location: index.php?action=admin&subaction=subscription_plan_add');
+        exit();
+    }
+
+    if ($prix < 1) {
+        $_SESSION['admin_sub_error'] = 'Le prix doit être supérieur à 0.';
         header('Location: index.php?action=admin&subaction=subscription_plan_add');
         exit();
     }
@@ -350,6 +380,7 @@ function adminSubscriptionPlanAddPost() {
     $published = ($saveAction === 'publish') ? 1 : 0;
     $newId = createSubscriptionPlan($pdo, $name, $description, $prix, $published);
     saveSubscriptionPlanResources($pdo, $newId, $resources);
+    saveSubscriptionPlanPlaylists($pdo, $newId, $playlistGroups);
 
     $_SESSION['admin_sub_success'] = $published
         ? 'Type d\'abonnement publié : les étudiants peuvent le choisir sur la page Abonnements.'
@@ -369,6 +400,7 @@ function adminSubscriptionPlanEditGet($id) {
 
     require_once __DIR__ . '/../models/resourceModel.php';
     require_once __DIR__ . '/../models/subscriptionModel.php';
+    require_once __DIR__ . '/../models/playlistModel.php';
 
     $id = (int) $id;
     if ($id < 1 || !subscriptionPlansTablesExist($pdo)) {
@@ -383,7 +415,9 @@ function adminSubscriptionPlanEditGet($id) {
     }
 
     $selectedIds = getResourceIdsForPlan($pdo, $id);
+    $selectedPlaylistIds = getPlaylistGroupIdsForPlan($pdo, $id);
     $allResources = getAllResources($pdo);
+    $allPlaylists = getPlaylistGroupsForSelection($pdo);
 
     require_once __DIR__ . '/../views/admin/subscription_plan_form.php';
 }
@@ -397,6 +431,7 @@ function adminSubscriptionPlanEditPost($id) {
     global $pdo;
 
     require_once __DIR__ . '/../models/subscriptionModel.php';
+    require_once __DIR__ . '/../models/playlistModel.php';
 
     $id = (int) $id;
     if ($id < 1 || !subscriptionPlansTablesExist($pdo)) {
@@ -417,10 +452,33 @@ function adminSubscriptionPlanEditPost($id) {
     $resources = isset($_POST['resources']) && is_array($_POST['resources'])
         ? array_values(array_filter(array_map('intval', $_POST['resources'])))
         : [];
+    $playlistGroups = isset($_POST['playlist_groups']) && is_array($_POST['playlist_groups'])
+        ? array_values(array_filter(array_map('intval', $_POST['playlist_groups'])))
+        : [];
+    $resourcesFromPlaylists = getResourceIdsForPlaylistGroups($pdo, $playlistGroups);
+    $resources = array_values(array_unique(array_merge($resources, $resourcesFromPlaylists)));
     $saveAction = $_POST['save_action'] ?? 'draft';
 
     if ($name === '') {
         $_SESSION['admin_sub_error'] = 'Le nom est obligatoire.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+        exit();
+    }
+
+    if (!preg_match('/^[\p{L}\s]+$/u', $name) || !preg_match('/\p{L}/u', $name)) {
+        $_SESSION['admin_sub_error'] = 'Le nom ne doit contenir que des lettres et des espaces.';
+        header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+        exit();
+    }
+
+    if ($description !== '' && (!preg_match('/^[\p{L}\p{N}\s]+$/u', $description) || mb_strlen($description) > 500)) {
+        $_SESSION['admin_sub_error'] = 'La description : lettres, chiffres et espaces uniquement (max 500 caractères).';
+        header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
+        exit();
+    }
+
+    if ($prix < 1) {
+        $_SESSION['admin_sub_error'] = 'Le prix doit être supérieur à 0.';
         header('Location: index.php?action=admin&subaction=subscription_plan_edit&id=' . $id);
         exit();
     }
@@ -443,6 +501,7 @@ function adminSubscriptionPlanEditPost($id) {
 
     updateSubscriptionPlan($pdo, $id, $name, $description, $prix, $published);
     saveSubscriptionPlanResources($pdo, $id, $resources);
+    saveSubscriptionPlanPlaylists($pdo, $id, $playlistGroups);
 
     if ($published) {
         $_SESSION['admin_sub_success'] = 'Type mis à jour et publié.';
@@ -766,6 +825,109 @@ function adminDownloadResource($id) {
     }
     
     header('Location: index.php?action=admin&subaction=resources');
+    exit();
+}
+
+function adminPlaylists() {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+
+    require_once __DIR__ . '/../models/playlistModel.php';
+    require_once __DIR__ . '/../models/resourceModel.php';
+    $search = trim($_GET['search'] ?? '');
+
+    $editGroupId = (int) ($_GET['edit_id'] ?? 0);
+    $editPlaylist = null;
+    $editResourceIds = [];
+    if ($editGroupId > 0) {
+        $editPlaylist = getAdminPlaylistByGroup($pdo, $editGroupId);
+        if ($editPlaylist) {
+            $editResourceIds = getResourceIdsForPlaylistGroup($pdo, $editGroupId);
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $playlistGroupId = (int) ($_POST['playlist_group_id'] ?? 0);
+        $nom = trim($_POST['nom'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $resources = isset($_POST['resources']) && is_array($_POST['resources'])
+            ? array_values(array_filter(array_map('intval', $_POST['resources'])))
+            : [];
+
+        if ($nom === '' || mb_strlen($nom) > 20) {
+            $_SESSION['admin_playlist_error'] = 'Le nom est obligatoire (max 20 caractères).';
+            header('Location: index.php?action=admin&subaction=playlists');
+            exit();
+        }
+
+        if ($description === '' || mb_strlen($description) > 50) {
+            $_SESSION['admin_playlist_error'] = 'La description est obligatoire (max 50 caractères).';
+            header('Location: index.php?action=admin&subaction=playlists');
+            exit();
+        }
+
+        if (count($resources) < 1) {
+            $_SESSION['admin_playlist_error'] = 'Sélectionnez au moins une ressource.';
+            header('Location: index.php?action=admin&subaction=playlists');
+            exit();
+        }
+
+        $photo = '';
+        if ($playlistGroupId > 0) {
+            $current = getAdminPlaylistByGroup($pdo, $playlistGroupId);
+            $photo = $current['photo'] ?? '';
+        }
+        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $photoName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', basename($_FILES['photo']['name']));
+            if (move_uploaded_file($_FILES['photo']['tmp_name'], $uploadDir . $photoName)) {
+                $photo = 'uploads/' . $photoName;
+            }
+        }
+
+        if ($playlistGroupId > 0) {
+            $ok = updatePlaylistWithResources($pdo, $playlistGroupId, $nom, $description, $photo, $resources);
+            $_SESSION['admin_playlist_success'] = $ok ? 'Playlist modifiée avec succès.' : 'Impossible de modifier la playlist.';
+        } else {
+            $ok = createPlaylistWithResources($pdo, $nom, $description, $photo, $resources);
+            $_SESSION['admin_playlist_success'] = $ok ? 'Playlist créée avec succès.' : null;
+        }
+        if (empty($_SESSION['admin_playlist_success'])) {
+            $_SESSION['admin_playlist_error'] = 'Impossible d\'enregistrer la playlist (table playlist manquante ou données invalides).';
+        }
+        header('Location: index.php?action=admin&subaction=playlists');
+        exit();
+    }
+
+    $playlists = getAdminPlaylists($pdo, $search);
+    $playlistStats = getPlaylistDashboardStats($pdo);
+    $allResources = getAllResources($pdo);
+    require_once __DIR__ . '/../views/admin/playlists.php';
+}
+
+function adminPlaylistDelete($id) {
+    if (!isAdmin()) {
+        adminLoginGet();
+        return;
+    }
+
+    global $pdo;
+    require_once __DIR__ . '/../models/playlistModel.php';
+
+    if ((int) $id > 0 && deletePlaylistByGroup($pdo, $id)) {
+        $_SESSION['admin_playlist_success'] = 'Playlist supprimée.';
+    } else {
+        $_SESSION['admin_playlist_error'] = 'Suppression impossible.';
+    }
+
+    header('Location: index.php?action=admin&subaction=playlists');
     exit();
 }
 ?>

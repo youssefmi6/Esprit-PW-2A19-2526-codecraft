@@ -12,7 +12,6 @@
 CREATE DATABASE IF NOT EXISTS `studehub` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `studehub`;
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -101,6 +100,16 @@ CREATE TABLE `subscription_plan_resources` (
   CONSTRAINT `spr_res_fk` FOREIGN KEY (`id_ressource`) REFERENCES `ressource` (`id_res`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `subscription_plan_playlists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `plan_id` int(11) NOT NULL,
+  `playlist_group_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_plan_playlist` (`plan_id`,`playlist_group_id`),
+  KEY `idx_plan_playlist_plan` (`plan_id`),
+  CONSTRAINT `spp_plan_fk` FOREIGN KEY (`plan_id`) REFERENCES `subscription_plans` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- -----------------------------------------------------------------------------
 -- Abonnements membres (plan catalogue ou libelle personnalise)
 -- -----------------------------------------------------------------------------
@@ -129,6 +138,7 @@ CREATE TABLE `playlist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nom` varchar(20) NOT NULL,
   `description` varchar(50) NOT NULL,
+  `photo` varchar(500) DEFAULT '',
   `id_ressource` int(11) NOT NULL,
   `id_abonement` int(11) NOT NULL DEFAULT 0 COMMENT 'Cle de regroupement interne',
   PRIMARY KEY (`id`),

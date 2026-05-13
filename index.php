@@ -146,6 +146,8 @@ switch($action) {
             adminUsers();
         } elseif ($subaction === 'resources') {
             adminResources();
+        } elseif ($subaction === 'playlists') {
+            adminPlaylists();
         } elseif ($subaction === 'comments') {
             adminComments();
         } elseif ($subaction === 'profile') {
@@ -174,6 +176,8 @@ switch($action) {
             adminDeleteComment($id);
         } elseif ($subaction === 'download_resource') {
             adminDownloadResource($id);
+        } elseif ($subaction === 'playlist_delete') {
+            adminPlaylistDelete($id);
         } else {
             adminDashboard();
         }

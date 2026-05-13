@@ -7,6 +7,7 @@
     <meta charset="UTF-8">
     <title><?= escape($resource['titre']) ?> - StudyHub</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Jost:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@0.1.2/css/themify-icons.css">
@@ -78,7 +79,7 @@
                 <div class="comment-card"><div class="d-flex gap-3"><img src="<?= $comment['photo'] ?: 'https://randomuser.me/api/portraits/men/32.jpg' ?>" style="width:45px;height:45px;border-radius:50%;"><div><strong><?= escape($comment['nom']) ?> <?= escape($comment['prenom']) ?></strong><p><?= escape($comment['message']) ?></p><small><?= date('d/m/Y H:i', strtotime($comment['date'])) ?></small></div></div></div>
                 <?php endforeach; ?>
                 <?php if ($currentUser): ?>
-                <form method="POST" action="index.php?action=resource&subaction=add_comment" class="mt-4"><textarea name="message" class="form-control mb-2" rows="3" placeholder="Votre commentaire..." required></textarea><input type="hidden" name="id_res" value="<?= $resource['id_res'] ?>"><button type="submit" class="btn-primary-custom">Publier</button></form>
+                <form method="POST" action="index.php?action=resource&subaction=add_comment" class="mt-4" id="commentForm" novalidate><textarea name="message" class="form-control mb-2" rows="3" placeholder="Votre commentaire..."></textarea><input type="hidden" name="id_res" value="<?= $resource['id_res'] ?>"><button type="submit" class="btn-primary-custom">Publier</button></form>
                 <?php else: ?><div class="alert alert-info mt-3"><a href="index.php?action=login">Connectez-vous</a> pour commenter</div><?php endif; ?>
             </div>
         </div>
