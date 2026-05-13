@@ -138,26 +138,6 @@ switch($action) {
         require_once __DIR__ . '/controllers/profileController.php';
         profileGeneratePhoto();
         break;
-
-    case 'quiz':
-        require_once __DIR__ . '/controllers/quizController.php';
-        if ($subaction === 'start') {
-            quizStart($id);
-        } elseif ($subaction === 'submit') {
-            quizSubmit($id);
-        } elseif ($subaction === 'result') {
-            quizResult($id);
-        } elseif ($subaction === 'certificate') {
-            quizCertificate($id);
-        } else {
-            quizStart($id);
-        }
-        break;
-
-    case 'chat':
-        require_once __DIR__ . '/controllers/chatController.php';
-        chatIndex();
-        break;
     
     case 'admin':
         require_once __DIR__ . '/controllers/adminController.php';

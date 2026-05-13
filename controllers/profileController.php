@@ -32,8 +32,6 @@ function profileIndex() {
     
     $avgUserRating = $totalResources > 0 ? round($totalRating / $totalResources, 1) : 0;
     $totalPurchased = count($purchasedResources);
-    $quizAttempts = getQuizAttemptsByUser($pdo, (int)$user['id'], 25);
-    $quizPassedCount = count(array_filter($quizAttempts, static fn($a) => (int)($a['passed'] ?? 0) === 1));
     
     require_once __DIR__ . '/../views/profile/view.php';
 }

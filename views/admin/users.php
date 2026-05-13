@@ -87,7 +87,7 @@
             <nav class="mt-3 d-flex justify-content-center">
                 <ul class="pagination">
                     <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
-                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= max(1, $currentPage-1) ?>">Précédent</a>
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= max(1, $currentPage-1) ?>">Précédent</a>
                     </li>
                     <?php
                         $start = max(1, $currentPage - 2);
@@ -95,11 +95,11 @@
                         for ($p = $start; $p <= $end; $p++):
                     ?>
                         <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
-                            <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= $p ?>"><?= $p ?></a>
+                            <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= $p ?>"><?= $p ?></a>
                         </li>
                     <?php endfor; ?>
                     <li class="page-item <?= $currentPage >= $pages ? 'disabled' : '' ?>">
-                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&sort=<?= urlencode($sort ?? 'date_desc') ?>&page=<?= min($pages, $currentPage+1) ?>">Suivant</a>
+                        <a class="page-link" href="index.php?action=admin&subaction=users&search=<?= urlencode($search) ?>&page=<?= min($pages, $currentPage+1) ?>">Suivant</a>
                     </li>
                 </ul>
             </nav>
@@ -137,19 +137,20 @@
 
             input.addEventListener('input', function () {
                 clearTimeout(timer);
-                timer = setTimeout(runFetch, 250);
-            });
-
-            sortSelect.addEventListener('change', function () {
-                if (sortHiddenInput) {
-                    sortHiddenInput.value = sortSelect.value;
-                }
-                const params = new URLSearchParams(window.location.search);
-                params.set('action', 'admin');
-                params.set('subaction', 'users');
-                params.set('sort', sortSelect.value);
-                params.set('page', '1');
-                window.location.search = params.toString();
+                timer = setTimeout(async () => {
+                    const search = encodeURIComponent(input.value.trim());
+                    const url = `index.php?action=admin&subaction=users&ajax=1&search=${search}&page=1`;
+                    try {
+                        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        if (typeof data.rows === 'string') {
+                            body.innerHTML = data.rows;
+                        }
+                    } catch (e) {
+                        console.error('Recherche dynamique users error:', e);
+                    }
+                }, 250);
             });
         })();
     </script>

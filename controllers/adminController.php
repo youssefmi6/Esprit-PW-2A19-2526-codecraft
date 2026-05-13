@@ -89,7 +89,6 @@ function adminUsers() {
     global $pdo;
     
     $search = $_GET['search'] ?? '';
-    $sort = $_GET['sort'] ?? 'date_desc';
     $page = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 3;
     $offset = ($page - 1) * $perPage;
@@ -101,7 +100,7 @@ function adminUsers() {
         $page = $totalPages;
         $offset = ($page - 1) * $perPage;
     }
-    $users = getAllUsers($pdo, $search, $perPage, $offset, $sort);
+    $users = getAllUsers($pdo, $search, $perPage, $offset);
 
     if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         header('Content-Type: application/json; charset=UTF-8');
@@ -110,7 +109,6 @@ function adminUsers() {
             'count' => $total,
             'page' => $page,
             'total_pages' => $totalPages,
-            'sort' => $sort,
         ]);
         exit();
     }

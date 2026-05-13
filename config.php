@@ -20,17 +20,6 @@ if (file_exists($stripeLocalConfigPath)) {
     require_once $stripeLocalConfigPath;
 }
 
-$studyhubNotificationsLocal = __DIR__ . '/config/notifications.local.php';
-if (file_exists($studyhubNotificationsLocal)) {
-    require_once $studyhubNotificationsLocal;
-}
-$studyhubEmailLocal = __DIR__ . '/config/email.local.php';
-if (file_exists($studyhubEmailLocal)) {
-    require_once $studyhubEmailLocal;
-}
-
-require_once __DIR__ . '/includes/outbound_notifications.php';
-
 // Fonctions d'authentification
 function isLoggedIn() {
     return isset($_SESSION['user_id']);

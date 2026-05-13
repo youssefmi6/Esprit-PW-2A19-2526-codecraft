@@ -487,16 +487,6 @@
             background: var(--primary);
             color: #0f172a;
         }
-        :root[data-theme="dark"] .studyhub-book-pages {
-            background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
-        }
-        :root[data-theme="dark"] .studyhub-page-content p {
-            color: #334155;
-        }
-        :root[data-theme="dark"] .studyhub-book-orbit {
-            border-color: rgba(59, 130, 246, 0.33);
-            box-shadow: inset 0 0 45px rgba(59, 130, 246, 0.22);
-        }
         
         @media (max-width: 768px) { .hero h1 { font-size: 32px; } .nav-links { display: none; } }
         @media (max-width: 991.98px) {
@@ -515,16 +505,6 @@
             }
             .categories-carousel {
                 padding: 0 36px;
-            }
-            .studyhub-book-scene {
-                min-height: 310px;
-            }
-            .studyhub-book-orbit {
-                width: 280px;
-                height: 280px;
-            }
-            .studyhub-book {
-                transform: rotateX(15deg) rotateZ(-10deg) scale(0.93);
             }
         }
         
@@ -909,11 +889,6 @@ if(searchInput) {
         }, 250);
     });
 }
-if (sortInput) {
-    sortInput.addEventListener('change', function () {
-        runDynamicSearch();
-    });
-}
 
 var categoriesTrack = document.getElementById('categoriesTrack');
 var categoriesPrev = document.getElementById('categoriesPrev');
@@ -967,33 +942,6 @@ if (categoriesTrack && categoriesPrev && categoriesNext) {
 }
 
 // Theme toggle handled globally in js/scripts.js
-
-var revealTargets = document.querySelectorAll('.reveal-on-scroll');
-if (revealTargets.length > 0 && 'IntersectionObserver' in window) {
-    var revealObserver = new IntersectionObserver(function (entries, observer) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('revealed');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.16 });
-
-    revealTargets.forEach(function (el) {
-        revealObserver.observe(el);
-    });
-} else {
-    revealTargets.forEach(function (el) {
-        el.classList.add('revealed');
-    });
-}
-
-var studyhubBook = document.getElementById('studyhubBook');
-if (studyhubBook) {
-    window.requestAnimationFrame(function () {
-        studyhubBook.classList.add('play');
-    });
-}
 </script>
 
 <footer class="footer">
