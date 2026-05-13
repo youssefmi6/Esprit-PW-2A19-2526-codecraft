@@ -1,0 +1,8 @@
+<?php
+// Example config Stripe.
+// Copiez ce fichier en stripe.local.php et renseignez vos cles.
+
+define('STRIPE_PUBLIC_KEY', 'pk_test_your_key_here');
+define('STRIPE_SECRET_KEY', 'sk_test_your_key_here');
+define('STRIPE_CURRENCY', 'eur');
+
